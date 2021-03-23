@@ -6,3 +6,5 @@ gnutools-python
 numpy
 matplotlib
 pandas
+networkx
+pyglet

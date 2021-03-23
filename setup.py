@@ -12,16 +12,7 @@ setup(
     license='MIT',
     author='Jean Maximilien Cadic',
     python_requires='>=3.6',
-    install_requires=[
-        "pyYaml",
-        "opencv-python",
-        "scipy",
-        "trimesh",
-        "numpy",
-        "gnutools-python",
-        "matplotlib",
-        "pandas"
-    ],
+    install_requires=[r.rsplit()[0] for r in open("requirements.txt")],
     author_email='support@cadic.jp',
     description='GNU Tools for python',
     classifiers=[
