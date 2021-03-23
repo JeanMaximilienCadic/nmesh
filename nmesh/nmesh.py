@@ -1,18 +1,10 @@
-import copy
-import os
 from math import acos
-
-import cv2
-import numpy as np
 import trimesh
 from gnutools.utils import id_generator
-from gnutools.fs import parent, name
-from scipy import ndimage
 from scipy.spatial.distance import cdist as euclidean_distances
 from .functional import *
 
 class NMesh(trimesh.Trimesh):
-
     def __init__(self, filename=None, mesh=None, list=None, *args, **kwargs):  # ADD_DOC
         """
         Initialize a mesh: Load a filename or copy an existing mesh

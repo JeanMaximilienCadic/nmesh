@@ -6,5 +6,4 @@ COPY . /workspace/
 
 WORKDIR /workspace
 
-RUN pip install -r requirements.txt
-RUN python setup.py install
+RUN pip install git+https://github.com/JeanMaximilienCadic/nmesh
