@@ -1,2 +1,2 @@
 from .functional import *
-from nmesh.core import *
+from .nmesh import *

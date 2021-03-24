@@ -1,0 +1,15 @@
+x: &x 0
+y: &y 1
+z: &z 2
+
+r: &r 0
+g: &g 1
+v: &b 2
+
+xyz: [*x, *y, *z]
+rgb: [*r, *g, *b]
+C_int_env:  &C_int_env [200, 184, 248, 255]
+C_ext_env:  &C_ext_env [0, 120, 248, 255]
+C_ext_border:  &C_ext_border [0, 56, 248, 255]
+C_int_border:  &C_int_border [248, 184, 248, 255]
+colorsRGBA: [*C_int_env, *C_ext_env, *C_ext_border, *C_int_border]

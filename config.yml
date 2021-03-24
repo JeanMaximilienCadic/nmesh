@@ -1,0 +1,4 @@
+root_xy_ply: "/srv/nfs/cdata/MITSUI/crown_valid_dataset_normalized"
+root_xy_xyz: "/srv/nfs/cdata/MITSUI/crown_valid_dataset_normalized_xyz"
+
+

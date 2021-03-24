@@ -5,9 +5,14 @@ setup(
     version="0.0.1",
     long_description="",
     packages=[
-        "nmesh"
+        "nmesh",
+        "nmesh.core",
+        "nmesh.cp"
     ],
     include_package_data=True,
+    package_data = {
+        '': ['*.yml'],
+    },
     url='https://github.com/JeanMaximilienCadic/nmesh',
     license='MIT',
     author='Jean Maximilien Cadic',
