@@ -13,7 +13,7 @@ import os
 try:
     os.environ["NMESH_VARS"]
 except KeyError:
-    vars = load_config(f"{os.getcwd()}/../nmesh.yml")
+    vars = load_config(f"{os.path.dirname(__file__)}/../nmesh.yml")
     os.environ["NMESH_VARS"] = "1"
 
 
