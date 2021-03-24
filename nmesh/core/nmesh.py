@@ -2,7 +2,7 @@ from math import acos
 import trimesh
 from gnutools.utils import id_generator
 from scipy.spatial.distance import cdist as euclidean_distances
-from nmesh.functional import *
+
 
 class NMesh(trimesh.Trimesh):
     def __init__(self, filename=None, mesh=None, list=None, *args, **kwargs):

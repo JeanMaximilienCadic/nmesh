@@ -7,14 +7,13 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from gnutools.utils import parent, name
+from gnutools.fs import parent, name, load_config
 from scipy import ndimage
-from nmesh import load_config
 import os
 try:
     os.environ["NMESH_VARS"]
 except KeyError:
-    vars = load_config()
+    vars = load_config(os.path.realpath("nmesh/nmesh.yml"))
     os.environ["NMESH_VARS"] = "1"
 
 

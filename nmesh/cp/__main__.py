@@ -22,7 +22,7 @@ def main(folder_xy_ply, folder_xy_xyz, resolution=64, verbose=False):
 
 
 if __name__ == "__main__":
-    args = load_config("paths")
+    args = load_config()
     with ProcessPoolExecutor() as e:
         fs = [e.submit(main,
                        folder_xy_ply=f"{args.root_xy_ply}/{folder_name}",
