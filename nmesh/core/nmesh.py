@@ -2,6 +2,7 @@ from math import acos
 import trimesh
 from gnutools.utils import id_generator
 from scipy.spatial.distance import cdist as euclidean_distances
+from .functional import *
 
 
 class NMesh(trimesh.Trimesh):
