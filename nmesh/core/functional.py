@@ -10,11 +10,20 @@ import pandas as pd
 from gnutools.fs import parent, name, load_config
 from scipy import ndimage
 import os
-try:
-    os.environ["NMESH_VARS"]
-except KeyError:
-    vars = load_config(f"{os.path.dirname(__file__)}/../nmesh.yml")
-    os.environ["NMESH_VARS"] = "1"
+# try:
+#     os.environ["NMESH_VARS"]
+# except KeyError:
+#     vars = load_config(f"{os.path.dirname(__file__)}/../nmesh.yml")
+#     os.environ["NMESH_VARS"] = "1"
+x, y, z =  0, 1, 2
+r, g, b = 0, 1, 2
+xyz = [x, y, z]
+rgb = [r, g, b]
+C_int_env= [200, 184, 248, 255]
+C_ext_env=  [0, 120, 248, 255]
+C_ext_border=  [0, 56, 248, 255]
+C_int_border=  [248, 184, 248, 255]
+colorsRGBA= [C_int_env, C_ext_env, C_ext_border, C_int_border]
 
 
 def dist(v1, v2):
@@ -117,7 +126,7 @@ def crop_bounding_box(vertices, r):
     return vertices[inds_vertices]
 
 
-def crop(vertices, axis=vars.z, borne_inf=0, borne_sup=1, t_min=None, t_max=None, return_inds=False):
+def crop(vertices, axis=z, borne_inf=0, borne_sup=1, t_min=None, t_max=None, return_inds=False):
     """
     Reduce vertices to specific region
 
@@ -155,7 +164,7 @@ def rotateMatrix(vertices, M):
     return np.dot(M, vertices.transpose()).transpose()
 
 
-def rotate(vertices, theta=0, deg=None, axis_rotation=vars.z, origin=np.zeros(3), degs=None):
+def rotate(vertices, theta=0, deg=None, axis_rotation=z, origin=np.zeros(3), degs=None):
     """
     Rotate vertices
 
@@ -350,7 +359,7 @@ def execute_ops(vertices, operations):
     return vertices
 
 
-def split(v_tooth, v_left=None, v_right=None, axis=vars.y):
+def split(v_tooth, v_left=None, v_right=None, axis=y):
     """
 
     :param v_tooth:
@@ -378,7 +387,7 @@ def detect_flip(heap_id):
     # variables extraction
     if int(heap_id / 10) in [1, 2]:
         # Flip the base
-        flip = [{"rotation": {"axis": vars.x, "theta": pi}}]
+        flip = [{"rotation": {"axis": x, "theta": pi}}]
         ops.extend(flip)
     return ops
 
@@ -461,7 +470,7 @@ def int2rgb(array):
     asort = np.argsort(-counts)
     [colorInt16, counts] = [colorInt16[asort], counts[asort]]
     for i, color in enumerate(colorInt16):
-        colors[np.where(array == color)] = vars.colorsRGBA[i]
+        colors[np.where(array == color)] = colorsRGBA[i]
     return colors
 
 
@@ -478,7 +487,7 @@ def rgb2int(face_colors):
     return np.array(f23, dtype=np.longlong)
 
 
-def slicing(vertices, maj_axis=vars.y, min_axis=vars.x, N=100):
+def slicing(vertices, maj_axis=y, min_axis=x, N=100):
     """
 
     :param vertices:
@@ -634,7 +643,7 @@ def find_orientation(vertices=None, im=None, borne_inf=0, borne_sup=1, display=F
 
     # Tooth orientation
     if im is None:
-        im = image(crop(axis=vars.z, vertices=vertices, borne_inf=borne_inf, borne_sup=borne_sup))
+        im = image(crop(axis=z, vertices=vertices, borne_inf=borne_inf, borne_sup=borne_sup))
 
     # Get the contours
     ret, thresh = cv2.threshold(im, 0, 255, 0)
@@ -685,12 +694,12 @@ def is_contained_in(inside_vertices, outside_vertices, grid=100, display=False, 
     # print("inside_vertices" + str(ranges(inside_vertices)))
     outside_vertices = np.unique(np.array(outside_vertices * grid, dtype=int), axis=0) / grid
 
-    rz = ranges(inside_vertices, axis=vars.z)
+    rz = ranges(inside_vertices, axis=z)
     pad = 1 / grid
     K = []
     for z_min in np.arange(rz[0], rz[1] - pad, pad):
-        outside_vertices_croped = crop(outside_vertices, axis=vars.z, t_min=z_min, t_max=z_min + pad)
-        inside_vertices_croped = crop(inside_vertices, axis=vars.z, t_min=z_min, t_max=z_min + pad)
+        outside_vertices_croped = crop(outside_vertices, axis=z, t_min=z_min, t_max=z_min + pad)
+        inside_vertices_croped = crop(inside_vertices, axis=z, t_min=z_min, t_max=z_min + pad)
         K.append([z_min, z_min + pad, len(bounding_box(outside_vertices_croped, r=ranges(inside_vertices_croped)))])
     K = np.array(K)
     if display:
