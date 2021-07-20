@@ -1,2 +1,2 @@
-from .functional import *
-from .nmesh import NMesh
+from nmesh.core import *
+__version__="0.0.2"

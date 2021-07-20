@@ -4,8 +4,9 @@ from gnutools.utils import id_generator
 from scipy.spatial.distance import cdist as euclidean_distances
 from .functional import *
 
+
 class NMesh(trimesh.Trimesh):
-    def __init__(self, filename=None, mesh=None, list=None, *args, **kwargs):  # ADD_DOC
+    def __init__(self, filename=None, mesh=None, list=None, *args, **kwargs):
         """
         Initialize a mesh: Load a filename or copy an existing mesh
 
@@ -27,7 +28,7 @@ class NMesh(trimesh.Trimesh):
         except AttributeError:
             raise AttributeError("Child' object has no attribute '%s'" % name)
 
-    def load(self, filename=None, mesh=None, list=None):  # ADD_DOC
+    def load(self, filename=None, mesh=None, list=None):
         """
 
         :param filename:
@@ -45,7 +46,7 @@ class NMesh(trimesh.Trimesh):
         else:
             self.mesh = mesh
 
-    def components(self, only_watertight=False, r=None, min_vertices=-1, max_vertices=None):  # ADD_DOC
+    def components(self, only_watertight=False, r=None, min_vertices=-1, max_vertices=None):
         """
         Return the number of disconnected components and filter by the size of splited meshes
 
@@ -61,7 +62,7 @@ class NMesh(trimesh.Trimesh):
         else:
             return [m for m in meshes if len(m.vertices) >= min_vertices]
 
-    def crop_bounding_box(self, r):  # ADD_DOC
+    def crop_bounding_box(self, r):
         """
         Reduce a mesh to a specific region in the space
 
@@ -73,7 +74,7 @@ class NMesh(trimesh.Trimesh):
             (np.min(self.vertices - r[0], axis=1) >= 0) & (np.max(self.vertices - r[1], axis=1) <= 0)).reshape(-1, )
         self.vertices_subset(inds=inds_vertices)
 
-    def vertices_subset(self, inds):  # ADD_DOC
+    def vertices_subset(self, inds):
         """
         Update the vertices with a subset.
 
@@ -144,7 +145,7 @@ class NMesh(trimesh.Trimesh):
                 self.visual.vertex_colors[np.where(np.min(intersection, axis=1) == 0)] = [255, 255, 255, 255]
         return intercomponents
 
-    def rotate(self, theta, axis_rotation):  # ADD_DOC
+    def rotate(self, theta, axis_rotation):
         """
         Rotate the mesh around the origin axis
 
@@ -154,7 +155,7 @@ class NMesh(trimesh.Trimesh):
         """
         self.vertices = rotate(vertices=self.vertices, theta=theta, axis_rotation=axis_rotation)
 
-    def rgb(self, res=64, neighbors=[], opacity=1):  # ADD_DOC
+    def rgb(self, res=64, neighbors=[], opacity=1):
         """
         Set a color to a mesh
 
@@ -202,7 +203,7 @@ class NMesh(trimesh.Trimesh):
         img = cv2.resize(img, dsize=(res, res))
         return img
 
-    def ranges(self):  # ADD_DOC
+    def ranges(self):
         """
         Find the bounding box of the mesh
 
@@ -210,7 +211,7 @@ class NMesh(trimesh.Trimesh):
         """
         return np.array([[self.vertices[:, k].min() for k in range(3)], [self.vertices[:, k].max() for k in range(3)]])
 
-    def length(self):  # ADD_DOC
+    def length(self):
         """
         Find the length of a mesh
 
@@ -218,7 +219,7 @@ class NMesh(trimesh.Trimesh):
         """
         return length(self.vertices)
 
-    def translate(self, translation, axis=None, positive=False, negative=False, inds=None):  # ADD_DOC
+    def translate(self, translation, axis=None, positive=False, negative=False, inds=None):
         """
         Move the mesh in the space
 
@@ -245,7 +246,7 @@ class NMesh(trimesh.Trimesh):
             else:
                 self.mesh.vertices[inds] += translation
 
-    def set_color(self, c):  # ADD_DOC
+    def set_color(self, c):
         """
         Set the color of the mesh
 
@@ -254,7 +255,7 @@ class NMesh(trimesh.Trimesh):
         """
         self.visual.face_colors = c
 
-    def closest_component(self, prepa, r=None):  # ADD_DOC
+    def closest_component(self, prepa, r=None):
         """
         Find the base from a list of candidates
 
@@ -313,7 +314,7 @@ class NMesh(trimesh.Trimesh):
         # (crown + crown.closest_component(prepa)[0] + crown.bounding_box_oriented.bounding_primitive).show()
         return anta, prepa
 
-    def colorize_components(self, r=None):  # ADD_DOC
+    def colorize_components(self, r=None):
         """
         Set a random color to each of the components
 
@@ -347,7 +348,7 @@ class NMesh(trimesh.Trimesh):
         self.load("{}.{}".format(ply_file, ext_out))
         os.system("rm {}.{}".format(ply_file, ext_out))
 
-    def filter(self, colormin=0.0, colormax=1.0):  # ADD_DOC
+    def filter(self, colormin=0.0, colormax=1.0):
         """
         Filter faces by color
 
@@ -360,7 +361,7 @@ class NMesh(trimesh.Trimesh):
         self.visual.face_colors = self.visual.face_colors[inds]
         self.faces = self.faces[inds]
 
-    def main_component(self):  # ADD_DOC
+    def main_component(self):
         """
         Return the main component in a mesh.
 
@@ -370,7 +371,7 @@ class NMesh(trimesh.Trimesh):
         amax = np.argmax(candidates[:, 1])
         return candidates[amax, 0]
 
-    def origin(self, T):  # ADD_DOC
+    def origin(self, T):
         """
         Set the origin of the mesh
         
@@ -381,7 +382,7 @@ class NMesh(trimesh.Trimesh):
         self.translate(T0 + T)
         return T0
 
-    def matrix3d(self, dim=64):  # ADD_DOC
+    def matrix3d(self, dim=64):
         """
         Convert the mesh to a 3d matrix
 
@@ -395,7 +396,7 @@ class NMesh(trimesh.Trimesh):
         M[uvertices[:, 0], uvertices[:, 1], uvertices[:, 2]] = 1
         return M
 
-    def inter_bbox(self, cmpt):  # ADD_DOC
+    def inter_bbox(self, cmpt):
         """
 
         :param cmpt:
@@ -410,7 +411,7 @@ class NMesh(trimesh.Trimesh):
         bbox = cmpt.ranges()
         return len(crop_bounding_box(self.vertices, bbox)) > 0
 
-    def add_vertice(self, v):  # ADD_DOC
+    def add_vertice(self, v):
         """
         Concatenate vertices.
 
@@ -461,7 +462,7 @@ class NMesh(trimesh.Trimesh):
                 trans = -operation["translation"]
                 self.translate(translation=trans)
 
-    def shot(self, resolution=[400, 400]):  # ADD_DOC
+    def shot(self, resolution=[400, 400]):
         """
 
         :return:

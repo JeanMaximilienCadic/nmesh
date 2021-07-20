@@ -1,13 +1,14 @@
 from setuptools import setup
-
+from nmesh import __version__
 setup(
     name='nmesh',
-    version="0.0.1",
+    version=__version__,
     long_description="",
     packages=[
-        "nmesh"
+        "nmesh",
+        "nmesh.core",
+        "nmesh.cp"
     ],
-    include_package_data=True,
     url='https://github.com/JeanMaximilienCadic/nmesh',
     license='MIT',
     author='Jean Maximilien Cadic',

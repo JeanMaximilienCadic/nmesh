@@ -1,8 +1,6 @@
-FROM python:3.6
+FROM jcadic/gnutools-python
 
 RUN apt update -y && apt-get install libgl1-mesa-dev xvfb -y
-
-COPY . /workspace/
 
 WORKDIR /workspace
 

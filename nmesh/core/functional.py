@@ -1,29 +1,32 @@
 import copy
-import os
 import pickle
 import random as random
 import time
 from math import *
-
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from gnutools.utils import parent, name
+from gnutools.fs import parent, name, load_config
 from scipy import ndimage
+import os
+# try:
+#     os.environ["NMESH_VARS"]
+# except KeyError:
+#     vars = load_config(f"{os.path.dirname(__file__)}/../nmesh.yml")
+#     os.environ["NMESH_VARS"] = "1"
+x, y, z =  0, 1, 2
+r, g, b = 0, 1, 2
+xyz = [x, y, z]
+rgb = [r, g, b]
+C_int_env= [200, 184, 248, 255]
+C_ext_env=  [0, 120, 248, 255]
+C_ext_border=  [0, 56, 248, 255]
+C_int_border=  [248, 184, 248, 255]
+colorsRGBA= [C_int_env, C_ext_env, C_ext_border, C_int_border]
 
 
-[x, y, z] = [0, 1, 2]
-[R, G, B] = [0, 1, 2]
-C_int_env = np.array([200, 184, 248, 255])
-C_ext_env = np.array([0, 120, 248, 255])
-C_ext_border = np.array([0, 56, 248, 255])
-C_int_border = np.array([248, 184, 248, 255])
-colorsRGBA = np.array([C_int_env, C_ext_env, C_ext_border, C_int_border])
-
-
-
-def dist(v1, v2):  # ADD_DOC
+def dist(v1, v2):
     """
     Euclidian distance between two vectors
 
@@ -34,7 +37,7 @@ def dist(v1, v2):  # ADD_DOC
     return np.abs(v1 - v2)
 
 
-def bounding_box(vertices, r):  # ADD_DOC
+def bounding_box(vertices, r):
     """
     Bounding box of a list of vertices
 
@@ -46,7 +49,7 @@ def bounding_box(vertices, r):  # ADD_DOC
     return vertices[args]
 
 
-def ranges(vertices, scale=np.ones(3)):  # ADD_DOC
+def ranges(vertices, scale=np.ones(3)):
     """
     Get the  bounding box of vertices
 
@@ -62,7 +65,7 @@ def ranges(vertices, scale=np.ones(3)):  # ADD_DOC
     return r
 
 
-def length(vertices):  # ADD_DOC
+def length(vertices):
     """
     Get the length of vertices
 
@@ -74,7 +77,7 @@ def length(vertices):  # ADD_DOC
     return (maximums - minimums)
 
 
-def center(vertices):  # ADD_DOC
+def center(vertices):
     """
     Translate the vertices to the origin
 
@@ -85,7 +88,7 @@ def center(vertices):  # ADD_DOC
     return [vertices + T, T]
 
 
-def center_mean(vertices):  # ADD_DOC
+def center_mean(vertices):
     """
     Translate by the center of mass of the vertices
 
@@ -97,7 +100,7 @@ def center_mean(vertices):  # ADD_DOC
     return [vertices, trans]
 
 
-def translate(vertices, translation):  # ADD_DOC
+def translate(vertices, translation):
     """
     Translate vertices
 
@@ -110,7 +113,7 @@ def translate(vertices, translation):  # ADD_DOC
     return vertices + translation
 
 
-def crop_bounding_box(vertices, r):  # ADD_DOC
+def crop_bounding_box(vertices, r):
     """
     Reduce a list of vertices to a specific region in the space
 
@@ -123,7 +126,7 @@ def crop_bounding_box(vertices, r):  # ADD_DOC
     return vertices[inds_vertices]
 
 
-def crop(vertices, axis=z, borne_inf=0, borne_sup=1, t_min=None, t_max=None, return_inds=False):  # ADD_DOC
+def crop(vertices, axis=z, borne_inf=0, borne_sup=1, t_min=None, t_max=None, return_inds=False):
     """
     Reduce vertices to specific region
 
@@ -150,7 +153,7 @@ def crop(vertices, axis=z, borne_inf=0, borne_sup=1, t_min=None, t_max=None, ret
         return vertices[inds]
 
 
-def rotateMatrix(vertices, M):  # ADD_DOC
+def rotateMatrix(vertices, M):
     """
     Rotate vertices by a given matrix
 
@@ -161,7 +164,7 @@ def rotateMatrix(vertices, M):  # ADD_DOC
     return np.dot(M, vertices.transpose()).transpose()
 
 
-def rotate(vertices, theta=0, deg=None, axis_rotation=z, origin=np.zeros(3), degs=None):  # ADD_DOC
+def rotate(vertices, theta=0, deg=None, axis_rotation=z, origin=np.zeros(3), degs=None):
     """
     Rotate vertices
 
@@ -229,7 +232,7 @@ def rotate(vertices, theta=0, deg=None, axis_rotation=z, origin=np.zeros(3), deg
     return vertices
 
 
-def display_image(im, wait=1, factor=5, title=None):  # ADD_DOC
+def display_image(im, wait=1, factor=5, title=None):
     """
     Display an image
     :param im:
@@ -248,7 +251,7 @@ def display_image(im, wait=1, factor=5, title=None):  # ADD_DOC
     return
 
 
-def rotate_image(im=None, deg=0):  # ADD_DOC
+def rotate_image(im=None, deg=0):
     """
 
     :param im:
@@ -356,7 +359,7 @@ def execute_ops(vertices, operations):
     return vertices
 
 
-def split(v_tooth, v_left=None, v_right=None, axis=y):  # ADD_DOC
+def split(v_tooth, v_left=None, v_right=None, axis=y):
     """
 
     :param v_tooth:
@@ -389,7 +392,7 @@ def detect_flip(heap_id):
     return ops
 
 
-def scale(vertices, rate, axis, positive=False, negative=False, t_max=None, t_min=None):  # ADD_DOC
+def scale(vertices, rate, axis, positive=False, negative=False, t_max=None, t_min=None):
     """
 
     :param vertices:
@@ -535,7 +538,7 @@ def iops(meshes, operations):
         m.iops(operations)
 
 
-def image(vertices=None, display=False, title=None, RGB=False, factor=None, wait=1):  # ADD_DOC
+def image(vertices=None, display=False, title=None, RGB=False, factor=None, wait=1):
     """
     Convert a mesh into a 2d image
 
@@ -732,7 +735,7 @@ def is_contained_in(inside_vertices, outside_vertices, grid=100, display=False, 
 #     return img
 
 
-def random_color():  # ADD_DOC
+def random_color():
     """
 
     :return:
@@ -742,7 +745,7 @@ def random_color():  # ADD_DOC
     return np.array(color, dtype=np.uint8)
 
 
-def xyz(x, y, res=np.ones(3) * 64):  # ADD_DOC
+def xyz(x, y, res=np.ones(3) * 64):
     """
 
     :param x:
@@ -771,10 +774,10 @@ def xyz(x, y, res=np.ones(3) * 64):  # ADD_DOC
     return x, y
 
 
-# @iyo_remote
+
 def auto_align(crown_uri, prepa_uri, anta_uri):
     """
-    @iyo_remote
+
     Aligne automatically a mesh
 
     :param crown_uri:
