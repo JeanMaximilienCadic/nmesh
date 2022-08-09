@@ -7,23 +7,14 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from gnutools.fs import parent, name, load_config
+from gnutools.fs import parent, name
 from scipy import ndimage
 import os
-# try:
-#     os.environ["NMESH_VARS"]
-# except KeyError:
-#     vars = load_config(f"{os.path.dirname(__file__)}/../nmesh.yml")
-#     os.environ["NMESH_VARS"] = "1"
+
 x, y, z = 0, 1, 2
 r, g, b = 0, 1, 2
 xyz = [x, y, z]
 rgb = [r, g, b]
-C_int_env = [200, 184, 248, 255]
-C_ext_env = [0, 120, 248, 255]
-C_ext_border = [0, 56, 248, 255]
-C_int_border = [248, 184, 248, 255]
-colorsRGBA = [C_int_env, C_ext_env, C_ext_border, C_int_border]
 
 
 def dist(v1, v2):
@@ -380,21 +371,6 @@ def scale(vertices, rate, axis, positive=False, negative=False, t_max=None, t_mi
         vertices = translate(vertices, -trans)
 
     return vertices
-
-
-def int2rgb(array):
-    """
-
-    :param array:
-    :return:
-    """
-    colors = np.zeros((len(array), 4), dtype=np.uint8)
-    [colorInt16, counts] = np.unique(array, return_counts=True)
-    asort = np.argsort(-counts)
-    [colorInt16, counts] = [colorInt16[asort], counts[asort]]
-    for i, color in enumerate(colorInt16):
-        colors[np.where(array == color)] = colorsRGBA[i]
-    return colors
 
 
 def rgb2int(face_colors):
