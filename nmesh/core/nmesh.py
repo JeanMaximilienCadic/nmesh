@@ -55,7 +55,8 @@ class NMesh(trimesh.Trimesh):
         :return:
         """
         meshes = [NMesh(mesh=m) for m in self.split(only_watertight=only_watertight)] if r is None else \
-            [NMesh(mesh=m) for m in self.split(only_watertight=only_watertight) if len(m.vertices) in r]
+            [NMesh(mesh=m) for m in self.split(
+                only_watertight=only_watertight) if len(m.vertices) in r]
         # Filter by size
         if max_vertices is not None:
             return [m for m in meshes if len(m.vertices) in range(min_vertices, max_vertices)]
@@ -128,23 +129,6 @@ class NMesh(trimesh.Trimesh):
             self.visual.vertex_colors = self._vertex_colors
             self._compressed = False
 
-    def inter_components(self, mesh_prepa):
-        """
-        Find the components that intersect
-
-        :param mesh_prepa:
-        :return:
-        """
-        intercomponents = []
-        for c in mesh_prepa.components:
-            c = np.array(list(c))
-            intersection = euclidean_distances(self.vertices, mesh_prepa.vertices[c])
-            r = np.where(np.min(intersection, axis=1) < 1)[0]
-            if len(r) > 0:
-                intercomponents.append(r)
-                self.visual.vertex_colors[np.where(np.min(intersection, axis=1) == 0)] = [255, 255, 255, 255]
-        return intercomponents
-
     def rotate(self, theta, axis_rotation):
         """
         Rotate the mesh around the origin axis
@@ -153,7 +137,8 @@ class NMesh(trimesh.Trimesh):
         :param axis_rotation:
         :return:
         """
-        self.vertices = rotate(vertices=self.vertices, theta=theta, axis_rotation=axis_rotation)
+        self.vertices = rotate(vertices=self.vertices,
+                               theta=theta, axis_rotation=axis_rotation)
 
     def rgb(self, res=64, neighbors=[], opacity=1):
         """
@@ -168,7 +153,8 @@ class NMesh(trimesh.Trimesh):
         vertices = np.unique(np.array(self.vertices * 10, dtype=int), axis=0)
         r = ranges(vertices)
         l = length(vertices)
-        r_extend = np.ceil(np.array([[-max(r[1])] * 3, [max(r[1])] * 3]) * 1.28)
+        r_extend = np.ceil(
+            np.array([[-max(r[1])] * 3, [max(r[1])] * 3]) * 1.28)
         for i, _ in enumerate(np.array(neighbors)[:, 0]):
             neighbors[i][0].vertices = bounding_box(
                 vertices=np.unique(np.array(neighbors[i][0].vertices * 10, dtype=int),
@@ -179,7 +165,8 @@ class NMesh(trimesh.Trimesh):
         vertices = translate(vertices, -r_extend[0])
         mshape = ranges(vertices)[1][1:]
         for i, _ in enumerate(np.array(neighbors)[:, 0]):
-            neighbors[i][0].vertices = translate(np.array(neighbors[i][0].vertices, dtype=int), -r_extend[0])
+            neighbors[i][0].vertices = translate(
+                np.array(neighbors[i][0].vertices, dtype=int), -r_extend[0])
             mshape = [int(max(mshape[0], ranges(neighbors[i][0].vertices)[1][1])),
                       int(max(mshape[1], ranges(neighbors[i][0].vertices)[1][2]))]
 
@@ -187,19 +174,23 @@ class NMesh(trimesh.Trimesh):
         img = np.zeros((mshape[0] + 1, mshape[1] + 1, 3))
         for channel, (neighbor, op) in enumerate(neighbors):
             for x, y, z in tuple(neighbor.vertices):
-                img[int(y), int(z), channel + 1] = max(op * int(x), img[int(y), int(z), channel + 1])
+                img[int(y), int(z), channel + 1] = max(op *
+                                                       int(x), img[int(y), int(z), channel + 1])
 
         for x, y, z in tuple(vertices):
-            img[int(y), int(z), 0] = max(opacity * int(x), img[int(y), int(z), 0])
+            img[int(y), int(z), 0] = max(
+                opacity * int(x), img[int(y), int(z), 0])
 
         mchannel = np.max(img)
         img /= mchannel
         img *= 255
 
-        img = cv2.rotate(np.array(img, dtype=np.uint8), cv2.ROTATE_90_COUNTERCLOCKWISE)
+        img = cv2.rotate(np.array(img, dtype=np.uint8),
+                         cv2.ROTATE_90_COUNTERCLOCKWISE)
         for _ in range(7):
             for channel in range(3):
-                img[:, :, channel] = ndimage.maximum_filter(img[:, :, channel], 2)
+                img[:, :, channel] = ndimage.maximum_filter(
+                    img[:, :, channel], 2)
         img = cv2.resize(img, dsize=(res, res))
         return img
 
@@ -255,65 +246,6 @@ class NMesh(trimesh.Trimesh):
         """
         self.visual.face_colors = c
 
-    def closest_component(self, prepa, r=None):
-        """
-        Find the base from a list of candidates
-
-        :param prepa:
-        :return:
-        """
-        centroid = np.mean(self.bounding_box.bounds, axis=0)
-        box = centroid + 2 * (self.bounding_box.bounds - centroid)
-        candidates = prepa.components(r=r)
-        assert len(candidates) >= 2
-        distances = [np.sum(abs(c.centroid - self.centroid)) for c in candidates]
-        ind = np.argmin(distances)
-        base = candidates[ind]
-        min_distance = distances[ind]
-        ratio = len(base.vertices) / len(self.vertices)
-        # print("ratio: {}\tmin_distance:{}".format(ratio, min_distance))
-        base.set_color([33, 30, 85])
-        self.set_color([37, 83, 89])
-        prepa = NMesh(list=list([base]) + list([c for c in candidates if not c == base]))
-        # (base+self).show()
-        return base, prepa
-
-    def auto_align(self, anta, prepa, anta_uri=None, prepa_uri=None):
-        """
-
-        :param anta:
-        :param prepa:
-        :param anta_uri:
-        :param prepa_uri:
-        :return:
-        """
-        # Center in 0
-        T = np.mean(NMesh(list=[anta, prepa]).bounding_box.bounds, axis=0)
-        [m.translate(-T) for m in [anta, prepa, self]]
-
-        # # Export
-        # before = NMesh(list=[anta, prepa, crown])
-        # before.colorize_components(r=range(0, 100000))
-        # before.export("before.ply")
-
-        # Align the centroid of the crown
-        base, prepa = self.closest_component(prepa)
-        centroid = base.centroid
-        centroid = centroid / np.linalg.norm(centroid)
-        theta = acos(centroid[0])
-        [m.rotate(theta=theta, axis_rotation=2) for m in [anta, prepa, self, base]]
-        T = np.mean(base.ranges(), axis=0)
-        [m.translate(-T) for m in [anta, prepa, self]]
-
-        # # Export
-        # after = NMesh(list=[anta, prepa, crown])
-        # # after.colorize_components(r=range(1000, 5000))
-        # after.export("after.ply")
-        # after.show()
-
-        # (crown + crown.closest_component(prepa)[0] + crown.bounding_box_oriented.bounding_primitive).show()
-        return anta, prepa
-
     def colorize_components(self, r=None):
         """
         Set a random color to each of the components
@@ -324,7 +256,8 @@ class NMesh(trimesh.Trimesh):
         splits_all = self.components()
         splits = [s for s in splits_all if len(s.vertices) in r]
         [s.set_color(random_color()) for s in splits]
-        self.load(list=list(splits) + list(s for s in splits_all if not s in splits))
+        self.load(list=list(splits) +
+                  list(s for s in splits_all if not s in splits))
 
     def meshlab(self, script_name, ext_in="ply", ext_out="ply"):
         """
@@ -356,8 +289,10 @@ class NMesh(trimesh.Trimesh):
         :param colormax:
         :return:
         """
-        fcolors = np.array([rgb2flaot(rgb) for rgb in self.visual.face_colors[:, :3]])
-        inds = np.argwhere((fcolors >= colormin) & (fcolors <= colormax)).reshape(-1, )
+        fcolors = np.array([rgb2flaot(rgb)
+                           for rgb in self.visual.face_colors[:, :3]])
+        inds = np.argwhere((fcolors >= colormin) & (
+            fcolors <= colormax)).reshape(-1, )
         self.visual.face_colors = self.visual.face_colors[inds]
         self.faces = self.faces[inds]
 
@@ -367,14 +302,15 @@ class NMesh(trimesh.Trimesh):
 
         :return:
         """
-        candidates = np.array([(cmpt, len(cmpt.vertices)) for cmpt in self.components()])
+        candidates = np.array([(cmpt, len(cmpt.vertices))
+                              for cmpt in self.components()])
         amax = np.argmax(candidates[:, 1])
         return candidates[amax, 0]
 
     def origin(self, T):
         """
         Set the origin of the mesh
-        
+
         :param T:
         :return:
         """
@@ -421,46 +357,6 @@ class NMesh(trimesh.Trimesh):
         vertices = list(self.vertices)
         vertices.append(v)
         self.vertices = vertices
-
-    def eops(self, operations):
-        """
-        Execute a list of geometrical opearations in [rotation, translation]
-
-        :param operations:
-        :return:
-        """
-        for operation in operations:
-            if list(operation.keys())[0] == "rotation":
-                rotation = operation["rotation"]
-                axis = rotation["axis"]
-                theta = rotation["theta"]
-                self.rotate(axis_rotation=axis, theta=theta)
-            elif list(operation.keys())[0] == "rotation_matrix":
-                M = operation["rotation_matrix"]
-                self.rotateMatrix(M)
-            elif list(operation.keys())[0] == "translation":
-                trans = operation["translation"]
-                self.translate(translation=trans)
-
-    def iops(self, operations):
-        """
-        Inverse a list of geometrical operations in [rotation, translation]
-
-        :param operations:
-        :return:
-        """
-        for operation in reversed(operations):
-            if list(operation.keys())[0] == "rotation":
-                rotation = operation["rotation"]
-                axis = rotation["axis_rotation"]
-                theta = -rotation["theta"]
-                self.rotate(axis_rotation=axis, theta=theta)
-            elif list(operation.keys())[0] == "rotation_matrix":
-                M = np.linalg.inv(operation["rotation_matrix"])
-                self.rotateMatrix(M)
-            elif list(operation.keys())[0] == "translation":
-                trans = -operation["translation"]
-                self.translate(translation=trans)
 
     def shot(self, resolution=[400, 400]):
         """

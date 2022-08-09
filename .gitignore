@@ -1,3 +1,6 @@
+.vscode
+notebooks
+dist/legacy
 .idea
 __pycache__
 config.yml
