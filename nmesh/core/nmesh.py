@@ -1,4 +1,3 @@
-from math import acos
 import trimesh
 from gnutools.utils import id_generator
 from scipy.spatial.distance import cdist as euclidean_distances
@@ -59,48 +58,15 @@ class NMesh(trimesh.Trimesh):
                 only_watertight=only_watertight) if len(m.vertices) in r]
         # Filter by size
         if max_vertices is not None:
-            return [m for m in meshes if len(m.vertices) in range(min_vertices, max_vertices)]
+            return np.array([m for m in meshes if len(m.vertices) in range(min_vertices, max_vertices)])
         else:
-            return [m for m in meshes if len(m.vertices) >= min_vertices]
+            return np.array([m for m in meshes if len(m.vertices) >= min_vertices])
 
     def crop_bounding_box(self, r):
-        """
-        Reduce a mesh to a specific region in the space
-
-        :param r: region of reference to crop the mesh
-        :return:
-        """
-
-        inds_vertices = np.argwhere(
-            (np.min(self.vertices - r[0], axis=1) >= 0) & (np.max(self.vertices - r[1], axis=1) <= 0)).reshape(-1, )
-        self.vertices_subset(inds=inds_vertices)
+        return self.crop_region(r)
 
     def vertices_subset(self, inds):
-        """
-        Update the vertices with a subset.
-
-        :param inds:
-        :return:
-        """
-        inds_faces = np.argwhere(np.in1d(self.faces[:, 0], inds) &
-                                 np.in1d(self.faces[:, 1], inds) &
-                                 np.in1d(self.faces[:, 2], inds)).reshape(-1, )
-
-        table = dict([(value, key) for key, value in enumerate(inds)])
-
-        self.faces = self.faces[inds_faces]
-        try:
-            if not len(self.faces) == len(self.visual.face_colors):
-                self.visual.face_colors = self.visual.face_colors[inds_faces]
-        except:
-            pass
-        self.vertices = self.vertices[inds]
-        try:
-            if not len(self.vertices) == len(self.visual.vertex_colors):
-                self.visual.vertex_colors = self.visual.vertex_colors[inds]
-        except:
-            pass
-        self.faces = [[table[v] for v in f] for f in self.faces]
+        return self.vertex_subset(inds)
 
     def compress(self, dims):
         """
@@ -380,3 +346,66 @@ class NMesh(trimesh.Trimesh):
             return img
         except BaseException as E:
             print("unable to save image", str(E))
+
+    def closest_component_from_proxy_mesh(self, pmesh, min_cmpts=1):
+        bbox = self.ranges()
+        cmpts = pmesh.components()
+        assert len(cmpts) >= min_cmpts
+        records = []
+        for _, c in enumerate(cmpts):
+            _c = c.crop_region(bbox)
+            n = len(_c.vertices)
+            records.append(n)
+        records = np.array(records)
+        ind = np.argmax(records).flatten()
+        return cmpts[ind][0]
+
+    def main_axis(self):
+        df = pd.DataFrame.from_records(
+            self.facets_normal, columns=["x", "y", "z"])
+        records = []
+        for ax in ["x", "y", "z"]:
+            records.append(abs(len(df[df[ax] <= 0])-len(df[df[ax] > 0])))
+        return int(np.argmax(records))
+
+    def longest_segment(self):
+        self.vertices[self.faces[:, :2]].shape
+        M = max(np.linalg.norm(
+            (self.vertices[self.faces][:, 1] - self.vertices[self.faces][:, 0]), axis=1))
+        return M
+
+    def find_vertex_in_box(self, bbox):
+        vinds = np.argwhere((self.vertices[:, 0] >= bbox[0][0]) &
+                            (self.vertices[:, 1] >= bbox[0][1]) &
+                            (self.vertices[:, 2] >= bbox[0][2]) &
+                            (self.vertices[:, 0] < bbox[1][0]) &
+                            (self.vertices[:, 1] < bbox[1][1]) &
+                            (self.vertices[:, 2] < bbox[1][2])).flatten()
+        return vinds
+
+    def crop_region(self, bbox):
+        vinds = self.find_vertex_in_box(bbox)
+        return self.vertex_subset(vinds)
+
+    def vertex_subset(self, vinds):
+        finds = np.unique(np.argwhere(
+            np.in1d(self.faces.reshape(-1, ), vinds)).flatten()//3)
+        try:
+            assert len(finds) > 1
+            return NMesh(mesh=self.submesh([finds])[0])
+        except AssertionError:
+            return NMesh(trimesh.Trimesh(vertices=[], faces=[]))
+
+    def remove_component(self, m):
+        cmpts = self.components()
+        area = sum(m.facets_area)
+        areas = [sum(c.facets_area) for c in cmpts]
+        _cmpts = [c for c, _area in zip(cmpts, areas) if not _area == area]
+        return NMesh(list=_cmpts)
+
+    def split_from_distance(self, D, eps=0.5):
+        vinds = np.argwhere((np.min(D, axis=1) <= eps)).flatten()
+        m0 = self.vertex_subset(vinds)
+        vinds = np.argwhere((np.min(D, axis=1) > eps)).flatten()
+        m1 = self.vertex_subset(vinds)
+        return m0, m1
