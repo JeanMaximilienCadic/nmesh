@@ -7,14 +7,23 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from gnutools.fs import parent, name
+from gnutools.fs import parent, name, load_config
 from scipy import ndimage
 import os
-
+# try:
+#     os.environ["NMESH_VARS"]
+# except KeyError:
+#     vars = load_config(f"{os.path.dirname(__file__)}/../nmesh.yml")
+#     os.environ["NMESH_VARS"] = "1"
 x, y, z = 0, 1, 2
 r, g, b = 0, 1, 2
 xyz = [x, y, z]
 rgb = [r, g, b]
+C_int_env = [200, 184, 248, 255]
+C_ext_env = [0, 120, 248, 255]
+C_ext_border = [0, 56, 248, 255]
+C_int_border = [248, 184, 248, 255]
+colorsRGBA = [C_int_env, C_ext_env, C_ext_border, C_int_border]
 
 
 def dist(v1, v2):
@@ -271,6 +280,90 @@ def export_pickle(file, filename):
         pickle.dump(file, f)
 
 
+def saveAll(fv_tooth=None, fv_base=None, fv_upper=None, fv_lower=None, fv_left=None, fv_front=None, fv_right=None,
+            fv_tmp=None, dir="/tmp/", ext=""):
+    """
+
+    :param fv_tooth:
+    :param fv_base:
+    :param fv_upper:
+    :param fv_lower:
+    :param fv_left:
+    :param fv_front:
+    :param fv_right:
+    :param fv_tmp:
+    :param dir:
+    :param ext:
+    :return:
+    """
+    if fv_tmp is not None:
+        if not ext == "ply":
+            export_pickle(fv_tmp, dir + "/tmp.pickle")
+        fv_tmp.export_mesh(
+            filename=dir + "/tmp.ply")
+    if fv_tooth is not None:
+        fv_tooth.mlx(name="taubin")
+        if not ext == "ply":
+            export_pickle(fv_tooth, dir + "/tooth.pickle")
+        fv_tooth.export_mesh(
+            filename=dir + "/tooth.ply")
+    if fv_base is not None:
+        if not ext == "ply":
+            export_pickle(fv_base, dir + "/base.pickle")
+        fv_base.export_mesh(
+            filename=dir + "/base.ply")
+    if fv_lower is not None:
+        if not ext == "ply":
+            export_pickle(fv_lower, dir + "/lower.pickle")
+        fv_lower.export_mesh(
+            filename=dir + "/lower.ply")
+    if fv_upper is not None:
+        if not ext == "ply":
+            export_pickle(fv_upper, dir + "/upper.pickle")
+        fv_upper.export_mesh(
+            filename=dir + "/upper.ply")
+    if fv_left is not None:
+        if not ext == "ply":
+            export_pickle(fv_left, dir + "/left.pickle")
+        fv_left.export_mesh(
+            filename=dir + "/left.ply")
+    if fv_right is not None:
+        if not ext == "ply":
+            export_pickle(fv_right, dir + "/right.pickle")
+        fv_right.export_mesh(
+            filename=dir + "/right.ply")
+    if fv_front is not None:
+        if not ext == "ply":
+            export_pickle(fv_front, dir + "/front.pickle")
+        fv_front.export_mesh(
+            filename=dir + "/front.ply")
+
+
+def execute_ops(vertices, operations):
+    """
+
+    :param vertices:
+    :param operations:
+    :return:
+    """
+    if vertices is None:
+        return None
+    for operation in operations:
+        if list(operation.keys())[0] == "rotation":
+            rotation = operation["rotation"]
+            axis = rotation["axis"]
+            theta = rotation["theta"]
+            vertices = rotate(vertices=vertices,
+                              axis_rotation=axis, theta=theta)
+        elif list(operation.keys())[0] == "rotation_matrix":
+            M = operation["rotation_matrix"]
+            vertices = rotateMatrix(vertices=vertices, M=M)
+        elif list(operation.keys())[0] == "translation":
+            trans = operation["translation"]
+            vertices = translate(vertices=vertices, translation=trans)
+    return vertices
+
+
 def split(v_tooth, v_left=None, v_right=None, axis=y):
     """
 
@@ -373,6 +466,21 @@ def scale(vertices, rate, axis, positive=False, negative=False, t_max=None, t_mi
     return vertices
 
 
+def int2rgb(array):
+    """
+
+    :param array:
+    :return:
+    """
+    colors = np.zeros((len(array), 4), dtype=np.uint8)
+    [colorInt16, counts] = np.unique(array, return_counts=True)
+    asort = np.argsort(-counts)
+    [colorInt16, counts] = [colorInt16[asort], counts[asort]]
+    for i, color in enumerate(colorInt16):
+        colors[np.where(array == color)] = colorsRGBA[i]
+    return colors
+
+
 def rgb2int(face_colors):
     """
 
@@ -415,6 +523,28 @@ def slicing(vertices, maj_axis=y, min_axis=x, N=100):
     q = np.clip(1 - (error_mean / amplitude), 0, 1)
 
     return inds, slices, q
+
+
+def eops(meshes, operations):
+    """
+
+    :param meshes:
+    :param operations:
+    :return:
+    """
+    for m in list(set(meshes)):
+        m.eops(operations)
+
+
+def iops(meshes, operations):
+    """
+
+    :param meshes:
+    :param operations:
+    :return:
+    """
+    for m in list(set(meshes)):
+        m.iops(operations)
 
 
 def image(vertices=None, display=False, title=None, RGB=False, factor=None, wait=1):

@@ -21,13 +21,16 @@ At a granular level, NMesh is a library that consists of the following component
 
 ## Installation
 
+
+### Local (not recommended)
+```
+make install_wheels
+```
+
 ### Docker
 To build the image with docker-compose
 ```
-sh docker.sh
+make build_dockers
+make docker_run_sandbox_gpu
 ```
 
-### Local
-```
-python setup.py install
-```

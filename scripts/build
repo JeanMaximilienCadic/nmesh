@@ -1,8 +1,0 @@
-#!/bin/sh
-
-# Compile the wheel
-cd ../ 
-rm -r $(find . -type d -iname __pycache__) && \
-python setup.py bdist_wheel && \
-rm -r build *.egg-info && \
-rm -r $(find . -type d -iname __pycache__)

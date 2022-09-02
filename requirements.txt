@@ -9,3 +9,4 @@ pandas
 networkx
 pyglet
 PyMeshLab
+black
