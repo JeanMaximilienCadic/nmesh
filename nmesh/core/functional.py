@@ -7,14 +7,23 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from gnutools.fs import parent, name
+from gnutools.fs import parent, name, load_config
 from scipy import ndimage
 import os
-
-x, y, z = 0, 1, 2
+# try:
+#     os.environ["NMESH_VARS"]
+# except KeyError:
+#     vars = load_config(f"{os.path.dirname(__file__)}/../nmesh.yml")
+#     os.environ["NMESH_VARS"] = "1"
+x, y, z =  0, 1, 2
 r, g, b = 0, 1, 2
 xyz = [x, y, z]
 rgb = [r, g, b]
+C_int_env= [200, 184, 248, 255]
+C_ext_env=  [0, 120, 248, 255]
+C_ext_border=  [0, 56, 248, 255]
+C_int_border=  [248, 184, 248, 255]
+colorsRGBA= [C_int_env, C_ext_env, C_ext_border, C_int_border]
 
 
 def dist(v1, v2):
@@ -36,8 +45,7 @@ def bounding_box(vertices, r):
     :param r:
     :return:
     """
-    args = np.argwhere(((np.prod(vertices <= r[1], axis=1)) & (
-        np.prod(vertices >= r[0], axis=1)))).reshape(-1, )
+    args = np.argwhere(((np.prod(vertices <= r[1], axis=1)) & (np.prod(vertices >= r[0], axis=1)))).reshape(-1, )
     return vertices[args]
 
 
@@ -53,8 +61,7 @@ def ranges(vertices, scale=np.ones(3)):
     maximums = np.max(vertices, axis=0)
     lengths = (maximums - minimums)
 
-    r = np.array([minimums - ((scale - 1) * lengths),
-                 maximums + ((scale - 1) * lengths)])
+    r = np.array([minimums - ((scale - 1) * lengths), maximums + ((scale - 1) * lengths)])
     return r
 
 
@@ -139,8 +146,7 @@ def crop(vertices, axis=z, borne_inf=0, borne_sup=1, t_min=None, t_max=None, ret
         t_min = (minimums + ((maximums - minimums) * borne_inf))
     if t_max is None:
         t_max = (minimums + ((maximums - minimums) * borne_sup))
-    inds = np.where((vertices[:, axis] >= t_min) &
-                    (vertices[:, axis] <= t_max))
+    inds = np.where((vertices[:, axis] >= t_min) & (vertices[:, axis] <= t_max))
     if return_inds:
         return vertices[inds], inds[0]
     else:
@@ -240,8 +246,7 @@ def display_image(im, wait=1, factor=5, title=None):
     if len(im.shape) == 2:
         im = cv2.cvtColor(im, cv2.COLOR_GRAY2RGB)
 
-    cv2.imshow(title, cv2.resize(im, None, fx=factor,
-               fy=factor, interpolation=cv2.INTER_CUBIC))
+    cv2.imshow(title, cv2.resize(im, None, fx=factor, fy=factor, interpolation=cv2.INTER_CUBIC))
     cv2.waitKey(wait)
     return
 
@@ -269,6 +274,89 @@ def export_pickle(file, filename):
     """
     with open(filename, "wb") as f:
         pickle.dump(file, f)
+
+
+def saveAll(fv_tooth=None, fv_base=None, fv_upper=None, fv_lower=None, fv_left=None, fv_front=None, fv_right=None,
+            fv_tmp=None, dir="/tmp/", ext=""):
+    """
+
+    :param fv_tooth:
+    :param fv_base:
+    :param fv_upper:
+    :param fv_lower:
+    :param fv_left:
+    :param fv_front:
+    :param fv_right:
+    :param fv_tmp:
+    :param dir:
+    :param ext:
+    :return:
+    """
+    if fv_tmp is not None:
+        if not ext == "ply":
+            export_pickle(fv_tmp, dir + "/tmp.pickle")
+        fv_tmp.export_mesh(
+            filename=dir + "/tmp.ply")
+    if fv_tooth is not None:
+        fv_tooth.mlx(name="taubin")
+        if not ext == "ply":
+            export_pickle(fv_tooth, dir + "/tooth.pickle")
+        fv_tooth.export_mesh(
+            filename=dir + "/tooth.ply")
+    if fv_base is not None:
+        if not ext == "ply":
+            export_pickle(fv_base, dir + "/base.pickle")
+        fv_base.export_mesh(
+            filename=dir + "/base.ply")
+    if fv_lower is not None:
+        if not ext == "ply":
+            export_pickle(fv_lower, dir + "/lower.pickle")
+        fv_lower.export_mesh(
+            filename=dir + "/lower.ply")
+    if fv_upper is not None:
+        if not ext == "ply":
+            export_pickle(fv_upper, dir + "/upper.pickle")
+        fv_upper.export_mesh(
+            filename=dir + "/upper.ply")
+    if fv_left is not None:
+        if not ext == "ply":
+            export_pickle(fv_left, dir + "/left.pickle")
+        fv_left.export_mesh(
+            filename=dir + "/left.ply")
+    if fv_right is not None:
+        if not ext == "ply":
+            export_pickle(fv_right, dir + "/right.pickle")
+        fv_right.export_mesh(
+            filename=dir + "/right.ply")
+    if fv_front is not None:
+        if not ext == "ply":
+            export_pickle(fv_front, dir + "/front.pickle")
+        fv_front.export_mesh(
+            filename=dir + "/front.ply")
+
+
+def execute_ops(vertices, operations):
+    """
+
+    :param vertices:
+    :param operations:
+    :return:
+    """
+    if vertices is None:
+        return None
+    for operation in operations:
+        if list(operation.keys())[0] == "rotation":
+            rotation = operation["rotation"]
+            axis = rotation["axis"]
+            theta = rotation["theta"]
+            vertices = rotate(vertices=vertices, axis_rotation=axis, theta=theta)
+        elif list(operation.keys())[0] == "rotation_matrix":
+            M = operation["rotation_matrix"]
+            vertices = rotateMatrix(vertices=vertices, M=M)
+        elif list(operation.keys())[0] == "translation":
+            trans = operation["translation"]
+            vertices = translate(vertices=vertices, translation=trans)
+    return vertices
 
 
 def split(v_tooth, v_left=None, v_right=None, axis=y):
@@ -340,8 +428,7 @@ def scale(vertices, rate, axis, positive=False, negative=False, t_max=None, t_mi
 
         trans = np.array([0, 0, -t_max])
         vertices_positives = translate(vertices_positives, trans)
-        vertices_positives[np.where(vertices_positives[:, axis] < 0)[
-            0], axis] *= rate
+        vertices_positives[np.where(vertices_positives[:, axis] < 0)[0], axis] *= rate
         trans = np.zeros(3)
         trans[axis] = min(vertices_positives[:, axis])
         vertices_positives = translate(vertices_positives, -trans)
@@ -349,8 +436,7 @@ def scale(vertices, rate, axis, positive=False, negative=False, t_max=None, t_mi
         if t_min is not None:
             trans = np.array([0, 0, t_min])
             vertices_negatives = translate(vertices_negatives, trans)
-            vertices_negatives[np.where(vertices_negatives[:, axis] > 0)[
-                0], axis] *= rate
+            vertices_negatives[np.where(vertices_negatives[:, axis] > 0)[0], axis] *= rate
             trans = np.zeros(3)
             trans[axis] = max(vertices_negatives[:, axis])
             vertices_negatives = translate(vertices_negatives, -trans)
@@ -373,6 +459,21 @@ def scale(vertices, rate, axis, positive=False, negative=False, t_max=None, t_mi
     return vertices
 
 
+def int2rgb(array):
+    """
+
+    :param array:
+    :return:
+    """
+    colors = np.zeros((len(array), 4), dtype=np.uint8)
+    [colorInt16, counts] = np.unique(array, return_counts=True)
+    asort = np.argsort(-counts)
+    [colorInt16, counts] = [colorInt16[asort], counts[asort]]
+    for i, color in enumerate(colorInt16):
+        colors[np.where(array == color)] = colorsRGBA[i]
+    return colors
+
+
 def rgb2int(face_colors):
     """
 
@@ -380,8 +481,7 @@ def rgb2int(face_colors):
     :return:
     """
     face_colors = face_colors.astype(str)
-    f01 = list(np.core.defchararray.add(
-        list(face_colors[:, 0]), list(face_colors[:, 1])))
+    f01 = list(np.core.defchararray.add(list(face_colors[:, 0]), list(face_colors[:, 1])))
     f12 = np.core.defchararray.add(f01, list(face_colors[:, 2]))
     f23 = np.core.defchararray.add(f12, list(face_colors[:, 3]))
     return np.array(f23, dtype=np.longlong)
@@ -410,11 +510,32 @@ def slicing(vertices, maj_axis=y, min_axis=x, N=100):
     slices = np.array(slices)
 
     error_mean = np.mean(np.abs(np.sum(slices, axis=1)))
-    amplitude = np.mean([np.mean(np.abs(slices[:, 0])),
-                        np.mean(np.abs(slices[:, 1]))])
+    amplitude = np.mean([np.mean(np.abs(slices[:, 0])), np.mean(np.abs(slices[:, 1]))])
     q = np.clip(1 - (error_mean / amplitude), 0, 1)
 
     return inds, slices, q
+
+
+def eops(meshes, operations):
+    """
+
+    :param meshes:
+    :param operations:
+    :return:
+    """
+    for m in list(set(meshes)):
+        m.eops(operations)
+
+
+def iops(meshes, operations):
+    """
+
+    :param meshes:
+    :param operations:
+    :return:
+    """
+    for m in list(set(meshes)):
+        m.iops(operations)
 
 
 def image(vertices=None, display=False, title=None, RGB=False, factor=None, wait=1):
@@ -438,13 +559,11 @@ def image(vertices=None, display=False, title=None, RGB=False, factor=None, wait
     start_time = time.time()
     [x, y, z] = [0, 1, 2]
     # Preprocess
-    vertices_rect = vertices
+    vertices_rect = vertices;
     correction = 10000
-    vertices_rect[:, 0:2] = np.array(
-        np.floor(vertices_rect[:, 0:2] * correction) / correction)
+    vertices_rect[:, 0:2] = np.array(np.floor(vertices_rect[:, 0:2] * correction) / correction)
 
-    correction = [min(vertices[:, 0]), min(
-        vertices[:, 1]), min(vertices[:, 2])]
+    correction = [min(vertices[:, 0]), min(vertices[:, 1]), min(vertices[:, 2])]
     vertices_rect = vertices - correction
 
     correction = max(vertices_rect[:, 2])
@@ -496,8 +615,7 @@ def image(vertices=None, display=False, title=None, RGB=False, factor=None, wait
     if factor is None:
         factor = 1
     else:
-        im = cv2.resize(im, None, fx=factor, fy=factor,
-                        interpolation=cv2.INTER_CUBIC)
+        im = cv2.resize(im, None, fx=factor, fy=factor, interpolation=cv2.INTER_CUBIC)
 
     if RGB:
         im = cv2.cvtColor(im, cv2.COLOR_GRAY2RGB)
@@ -525,13 +643,11 @@ def find_orientation(vertices=None, im=None, borne_inf=0, borne_sup=1, display=F
 
     # Tooth orientation
     if im is None:
-        im = image(crop(axis=z, vertices=vertices,
-                   borne_inf=borne_inf, borne_sup=borne_sup))
+        im = image(crop(axis=z, vertices=vertices, borne_inf=borne_inf, borne_sup=borne_sup))
 
     # Get the contours
     ret, thresh = cv2.threshold(im, 0, 255, 0)
-    contours, hierarchy = cv2.findContours(
-        thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     cnt = contours[0]
 
     # Get the the image
@@ -546,8 +662,7 @@ def find_orientation(vertices=None, im=None, borne_inf=0, borne_sup=1, display=F
         cv2.waitKey(wait)
 
     # Reformat the value to output
-    theta_opt_tooth = (theta_opt_tooth / 180) * \
-        pi if radian else theta_opt_tooth
+    theta_opt_tooth = (theta_opt_tooth / 180) * pi if radian else theta_opt_tooth
     # Return the result
     return theta_opt_tooth if return_image is False else theta_opt_tooth, im
 
@@ -575,22 +690,17 @@ def is_contained_in(inside_vertices, outside_vertices, grid=100, display=False, 
     # return False
 
     # print("inside_vertices" + str(ranges(inside_vertices)))
-    inside_vertices = np.unique(
-        np.array(inside_vertices * grid, dtype=int), axis=0) / grid
+    inside_vertices = np.unique(np.array(inside_vertices * grid, dtype=int), axis=0) / grid
     # print("inside_vertices" + str(ranges(inside_vertices)))
-    outside_vertices = np.unique(
-        np.array(outside_vertices * grid, dtype=int), axis=0) / grid
+    outside_vertices = np.unique(np.array(outside_vertices * grid, dtype=int), axis=0) / grid
 
     rz = ranges(inside_vertices, axis=z)
     pad = 1 / grid
     K = []
     for z_min in np.arange(rz[0], rz[1] - pad, pad):
-        outside_vertices_croped = crop(
-            outside_vertices, axis=z, t_min=z_min, t_max=z_min + pad)
-        inside_vertices_croped = crop(
-            inside_vertices, axis=z, t_min=z_min, t_max=z_min + pad)
-        K.append([z_min, z_min + pad, len(bounding_box(outside_vertices_croped,
-                 r=ranges(inside_vertices_croped)))])
+        outside_vertices_croped = crop(outside_vertices, axis=z, t_min=z_min, t_max=z_min + pad)
+        inside_vertices_croped = crop(inside_vertices, axis=z, t_min=z_min, t_max=z_min + pad)
+        K.append([z_min, z_min + pad, len(bounding_box(outside_vertices_croped, r=ranges(inside_vertices_croped)))])
     K = np.array(K)
     if display:
         plt.plot(K[:, 0], K[:, 2])
@@ -605,6 +715,24 @@ def is_contained_in(inside_vertices, outside_vertices, grid=100, display=False, 
             return False, max(K[:, 2])
         else:
             return False
+
+
+# def prepare_cifar(img, xtrain_mean):
+#     """
+#
+#     :param img:
+#     :param xtrain_mean:
+#     :return:
+#     """
+#     w, h = img.shape[:2]
+#     img = cv2.copyMakeBorder(img, max(w, h) - w, max(w, h) - w, max(w, h) - h, max(w, h) - h, cv2.BORDER_CONSTANT,
+#                              value=[0, 0, 0])
+#     img = cv2.resize(img, (64, 64))
+#     img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+#     # Normalize data.
+#     img = img.astype('float32') / 255
+#     img -= xtrain_mean
+#     return img
 
 
 def random_color():
@@ -644,6 +772,56 @@ def xyz(x, y, res=np.ones(3) * 64):
     y = np.unique(np.array(y, dtype=int), axis=0)
 
     return x, y
+
+
+
+def auto_align(crown_uri, prepa_uri, anta_uri):
+    """
+
+    Aligne automatically a mesh
+
+    :param crown_uri:
+    :param prepa_uri:
+    :param anta_uri:
+    :return:
+    """
+    from .nmesh import NMesh
+    try:
+        # Center in 0
+        crown = NMesh(filename=crown_uri)
+        prepa = NMesh(filename=prepa_uri)
+        anta = NMesh(filename=anta_uri)
+        print("Mesh loaded")
+
+        T = np.mean(NMesh(list=[anta, prepa]).bounding_box.bounds, axis=0)
+        [m.translate(-T) for m in [anta, prepa, crown]]
+        print("Mesh centered")
+
+        # # Export
+        # before = NMesh(list=[anta, prepa, crown])
+        # before.colorize_components(r=range(0, 100000))
+        # before.export("before.ply")
+
+        # Align the centroid of the crown
+        base, prepa = crown.closest_component(prepa)
+        centroid = base.centroid
+        centroid = centroid / np.linalg.norm(centroid)
+        theta = acos(centroid[0])
+        [m.rotate(theta=theta, axis_rotation=2) for m in [anta, prepa, crown, base]]
+        T = np.mean(base.ranges(), axis=0)
+        [m.translate(-T) for m in [anta, prepa, crown]]
+
+        # # Export
+        # after = NMesh(list=[anta, prepa, crown])
+        # # after.colorize_components(r=range(1000, 5000))
+        # after.export("after.ply")
+        # after.show()
+        print("Mesh Success")
+
+        # (crown + crown.closest_component(prepa)[0] + crown.bounding_box_oriented.bounding_primitive).show()
+        return True
+    except:
+        return False
 
 
 def rgb2flaot(crgb):

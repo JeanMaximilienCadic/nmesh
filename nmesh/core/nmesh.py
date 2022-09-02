@@ -1,7 +1,10 @@
+from math import acos, pi
 import trimesh
 from gnutools.utils import id_generator
 from scipy.spatial.distance import cdist as euclidean_distances
 from .functional import *
+from PIL import Image
+import random
 
 
 class NMesh(trimesh.Trimesh):
@@ -45,7 +48,9 @@ class NMesh(trimesh.Trimesh):
         else:
             self.mesh = mesh
 
-    def components(self, only_watertight=False, r=None, min_vertices=-1, max_vertices=None):
+    def components(
+        self, only_watertight=False, r=None, min_vertices=-1, max_vertices=None
+    ):
         """
         Return the number of disconnected components and filter by the size of splited meshes
 
@@ -53,20 +58,71 @@ class NMesh(trimesh.Trimesh):
         :param min_vertices:
         :return:
         """
-        meshes = [NMesh(mesh=m) for m in self.split(only_watertight=only_watertight)] if r is None else \
-            [NMesh(mesh=m) for m in self.split(
-                only_watertight=only_watertight) if len(m.vertices) in r]
+        meshes = (
+            [NMesh(mesh=m) for m in self.split(only_watertight=only_watertight)]
+            if r is None
+            else [
+                NMesh(mesh=m)
+                for m in self.split(only_watertight=only_watertight)
+                if len(m.vertices) in r
+            ]
+        )
         # Filter by size
         if max_vertices is not None:
-            return np.array([m for m in meshes if len(m.vertices) in range(min_vertices, max_vertices)])
+            return [
+                m
+                for m in meshes
+                if len(m.vertices) in range(min_vertices, max_vertices)
+            ]
         else:
-            return np.array([m for m in meshes if len(m.vertices) >= min_vertices])
+            return [m for m in meshes if len(m.vertices) >= min_vertices]
 
     def crop_bounding_box(self, r):
-        return self.crop_region(r)
+        """
+        Reduce a mesh to a specific region in the space
+
+        :param r: region of reference to crop the mesh
+        :return:
+        """
+
+        inds_vertices = np.argwhere(
+            (np.min(self.vertices - r[0], axis=1) >= 0)
+            & (np.max(self.vertices - r[1], axis=1) <= 0)
+        ).reshape(
+            -1,
+        )
+        self.vertices_subset(inds=inds_vertices)
 
     def vertices_subset(self, inds):
-        return self.vertex_subset(inds)
+        """
+        Update the vertices with a subset.
+
+        :param inds:
+        :return:
+        """
+        inds_faces = np.argwhere(
+            np.in1d(self.faces[:, 0], inds)
+            & np.in1d(self.faces[:, 1], inds)
+            & np.in1d(self.faces[:, 2], inds)
+        ).reshape(
+            -1,
+        )
+
+        table = dict([(value, key) for key, value in enumerate(inds)])
+
+        self.faces = self.faces[inds_faces]
+        try:
+            if not len(self.faces) == len(self.visual.face_colors):
+                self.visual.face_colors = self.visual.face_colors[inds_faces]
+        except:
+            pass
+        self.vertices = self.vertices[inds]
+        try:
+            if not len(self.vertices) == len(self.visual.vertex_colors):
+                self.visual.vertex_colors = self.visual.vertex_colors[inds]
+        except:
+            pass
+        self.faces = [[table[v] for v in f] for f in self.faces]
 
     def compress(self, dims):
         """
@@ -95,6 +151,25 @@ class NMesh(trimesh.Trimesh):
             self.visual.vertex_colors = self._vertex_colors
             self._compressed = False
 
+    def inter_components(self, mesh_prepa):
+        """
+        Find the components that intersect
+
+        :param mesh_prepa:
+        :return:
+        """
+        intercomponents = []
+        for c in mesh_prepa.components:
+            c = np.array(list(c))
+            intersection = euclidean_distances(self.vertices, mesh_prepa.vertices[c])
+            r = np.where(np.min(intersection, axis=1) < 1)[0]
+            if len(r) > 0:
+                intercomponents.append(r)
+                self.visual.vertex_colors[
+                    np.where(np.min(intersection, axis=1) == 0)
+                ] = [255, 255, 255, 255]
+        return intercomponents
+
     def rotate(self, theta, axis_rotation):
         """
         Rotate the mesh around the origin axis
@@ -103,8 +178,9 @@ class NMesh(trimesh.Trimesh):
         :param axis_rotation:
         :return:
         """
-        self.vertices = rotate(vertices=self.vertices,
-                               theta=theta, axis_rotation=axis_rotation)
+        self.vertices = rotate(
+            vertices=self.vertices, theta=theta, axis_rotation=axis_rotation
+        )
 
     def rgb(self, res=64, neighbors=[], opacity=1):
         """
@@ -119,44 +195,46 @@ class NMesh(trimesh.Trimesh):
         vertices = np.unique(np.array(self.vertices * 10, dtype=int), axis=0)
         r = ranges(vertices)
         l = length(vertices)
-        r_extend = np.ceil(
-            np.array([[-max(r[1])] * 3, [max(r[1])] * 3]) * 1.28)
+        r_extend = np.ceil(np.array([[-max(r[1])] * 3, [max(r[1])] * 3]) * 1.28)
         for i, _ in enumerate(np.array(neighbors)[:, 0]):
             neighbors[i][0].vertices = bounding_box(
-                vertices=np.unique(np.array(neighbors[i][0].vertices * 10, dtype=int),
-                                   axis=0),
-                r=r_extend)
+                vertices=np.unique(
+                    np.array(neighbors[i][0].vertices * 10, dtype=int), axis=0
+                ),
+                r=r_extend,
+            )
 
         # Translate
         vertices = translate(vertices, -r_extend[0])
         mshape = ranges(vertices)[1][1:]
         for i, _ in enumerate(np.array(neighbors)[:, 0]):
             neighbors[i][0].vertices = translate(
-                np.array(neighbors[i][0].vertices, dtype=int), -r_extend[0])
-            mshape = [int(max(mshape[0], ranges(neighbors[i][0].vertices)[1][1])),
-                      int(max(mshape[1], ranges(neighbors[i][0].vertices)[1][2]))]
+                np.array(neighbors[i][0].vertices, dtype=int), -r_extend[0]
+            )
+            mshape = [
+                int(max(mshape[0], ranges(neighbors[i][0].vertices)[1][1])),
+                int(max(mshape[1], ranges(neighbors[i][0].vertices)[1][2])),
+            ]
 
         # Prepare the image
         img = np.zeros((mshape[0] + 1, mshape[1] + 1, 3))
         for channel, (neighbor, op) in enumerate(neighbors):
             for x, y, z in tuple(neighbor.vertices):
-                img[int(y), int(z), channel + 1] = max(op *
-                                                       int(x), img[int(y), int(z), channel + 1])
+                img[int(y), int(z), channel + 1] = max(
+                    op * int(x), img[int(y), int(z), channel + 1]
+                )
 
         for x, y, z in tuple(vertices):
-            img[int(y), int(z), 0] = max(
-                opacity * int(x), img[int(y), int(z), 0])
+            img[int(y), int(z), 0] = max(opacity * int(x), img[int(y), int(z), 0])
 
         mchannel = np.max(img)
         img /= mchannel
         img *= 255
 
-        img = cv2.rotate(np.array(img, dtype=np.uint8),
-                         cv2.ROTATE_90_COUNTERCLOCKWISE)
+        img = cv2.rotate(np.array(img, dtype=np.uint8), cv2.ROTATE_90_COUNTERCLOCKWISE)
         for _ in range(7):
             for channel in range(3):
-                img[:, :, channel] = ndimage.maximum_filter(
-                    img[:, :, channel], 2)
+                img[:, :, channel] = ndimage.maximum_filter(img[:, :, channel], 2)
         img = cv2.resize(img, dsize=(res, res))
         return img
 
@@ -166,7 +244,12 @@ class NMesh(trimesh.Trimesh):
 
         :return:
         """
-        return np.array([[self.vertices[:, k].min() for k in range(3)], [self.vertices[:, k].max() for k in range(3)]])
+        return np.array(
+            [
+                [self.vertices[:, k].min() for k in range(3)],
+                [self.vertices[:, k].max() for k in range(3)],
+            ]
+        )
 
     def length(self):
         """
@@ -176,7 +259,9 @@ class NMesh(trimesh.Trimesh):
         """
         return length(self.vertices)
 
-    def translate(self, translation, axis=None, positive=False, negative=False, inds=None):
+    def translate(
+        self, translation, axis=None, positive=False, negative=False, inds=None
+    ):
         """
         Move the mesh in the space
 
@@ -212,6 +297,31 @@ class NMesh(trimesh.Trimesh):
         """
         self.visual.face_colors = c
 
+    def closest_component(self, prepa, r=None):
+        """
+        Find the base from a list of candidates
+
+        :param prepa:
+        :return:
+        """
+        centroid = np.mean(self.bounding_box.bounds, axis=0)
+        box = centroid + 2 * (self.bounding_box.bounds - centroid)
+        candidates = prepa.components(r=r)
+        assert len(candidates) >= 2
+        distances = [np.sum(abs(c.centroid - self.centroid)) for c in candidates]
+        ind = np.argmin(distances)
+        base = candidates[ind]
+        min_distance = distances[ind]
+        ratio = len(base.vertices) / len(self.vertices)
+        # print("ratio: {}\tmin_distance:{}".format(ratio, min_distance))
+        base.set_color([33, 30, 85])
+        self.set_color([37, 83, 89])
+        prepa = NMesh(
+            list=list([base]) + list([c for c in candidates if not c == base])
+        )
+        # (base+self).show()
+        return base, prepa
+
     def colorize_components(self, r=None):
         """
         Set a random color to each of the components
@@ -222,8 +332,7 @@ class NMesh(trimesh.Trimesh):
         splits_all = self.components()
         splits = [s for s in splits_all if len(s.vertices) in r]
         [s.set_color(random_color()) for s in splits]
-        self.load(list=list(splits) +
-                  list(s for s in splits_all if not s in splits))
+        self.load(list=list(splits) + list(s for s in splits_all if not s in splits))
 
     def meshlab(self, script_name, ext_in="ply", ext_out="ply"):
         """
@@ -238,10 +347,9 @@ class NMesh(trimesh.Trimesh):
         file_in = "{}.{}".format(ply_file, ext_in)
         file_out = "{}/{}.{}".format(parent(file_in), name(file_in), ext_out)
         self.export(file_in)
-        command = "xvfb-run -a -s \"-screen 0 800x600x24\" meshlabserver -i \"{}\" -o \"{}\" -s {} -om vc".format(
-            file_in,
-            file_out,
-            script)
+        command = 'xvfb-run -a -s "-screen 0 800x600x24" meshlabserver -i "{}" -o "{}" -s {} -om vc'.format(
+            file_in, file_out, script
+        )
         os.system(command)
         print(">> meshlab : {}".format(command))
         self.load("{}.{}".format(ply_file, ext_out))
@@ -255,10 +363,10 @@ class NMesh(trimesh.Trimesh):
         :param colormax:
         :return:
         """
-        fcolors = np.array([rgb2flaot(rgb)
-                           for rgb in self.visual.face_colors[:, :3]])
-        inds = np.argwhere((fcolors >= colormin) & (
-            fcolors <= colormax)).reshape(-1, )
+        fcolors = np.array([rgb2flaot(rgb) for rgb in self.visual.face_colors[:, :3]])
+        inds = np.argwhere((fcolors >= colormin) & (fcolors <= colormax)).reshape(
+            -1,
+        )
         self.visual.face_colors = self.visual.face_colors[inds]
         self.faces = self.faces[inds]
 
@@ -268,8 +376,9 @@ class NMesh(trimesh.Trimesh):
 
         :return:
         """
-        candidates = np.array([(cmpt, len(cmpt.vertices))
-                              for cmpt in self.components()])
+        candidates = np.array(
+            [(cmpt, len(cmpt.vertices)) for cmpt in self.components()]
+        )
         amax = np.argmax(candidates[:, 1])
         return candidates[amax, 0]
 
@@ -336,9 +445,8 @@ class NMesh(trimesh.Trimesh):
         try:
             # increment the file name
             # save a render of the object as a png
-            png = scene.save_image(resolution=resolution,
-                                   visible=True)
-            with open(img_path, 'wb') as f:
+            png = scene.save_image(resolution=resolution, visible=True)
+            with open(img_path, "wb") as f:
                 f.write(png)
                 f.close()
             img = cv2.imread(img_path)
@@ -347,65 +455,36 @@ class NMesh(trimesh.Trimesh):
         except BaseException as E:
             print("unable to save image", str(E))
 
-    def closest_component_from_proxy_mesh(self, pmesh, min_cmpts=1):
-        bbox = self.ranges()
-        cmpts = pmesh.components()
-        assert len(cmpts) >= min_cmpts
-        records = []
-        for _, c in enumerate(cmpts):
-            _c = c.crop_region(bbox)
-            n = len(_c.vertices)
-            records.append(n)
-        records = np.array(records)
-        ind = np.argmax(records).flatten()
-        return cmpts[ind][0]
+    def to_PyMeshLab(self):
+        from pymeshlab.pmeshlab import Mesh as _Mesh
+        from PyMeshLab import Mesh
 
-    def main_axis(self):
-        df = pd.DataFrame.from_records(
-            self.facets_normal, columns=["x", "y", "z"])
-        records = []
-        for ax in ["x", "y", "z"]:
-            records.append(abs(len(df[df[ax] <= 0])-len(df[df[ax] > 0])))
-        return int(np.argmax(records))
+        return Mesh(
+            input=_Mesh(
+                vertex_matrix=self.vertices,
+                face_matrix=self.faces,
+                v_normals_matrix=self.vertex_normals,
+                f_normals_matrix=self.face_normals,
+                f_color_matrix=self.visual.face_colors,
+                v_color_matrix=self.visual.vertex_colors,
+            )
+        )
 
-    def longest_segment(self):
-        self.vertices[self.faces[:, :2]].shape
-        M = max(np.linalg.norm(
-            (self.vertices[self.faces][:, 1] - self.vertices[self.faces][:, 0]), axis=1))
-        return M
+    def discrete_curvatures(self):
+        return self.to_PyMeshLab().discrete_curvatures()[0].to_NMesh()
 
-    def find_vertex_in_box(self, bbox):
-        vinds = np.argwhere((self.vertices[:, 0] >= bbox[0][0]) &
-                            (self.vertices[:, 1] >= bbox[0][1]) &
-                            (self.vertices[:, 2] >= bbox[0][2]) &
-                            (self.vertices[:, 0] < bbox[1][0]) &
-                            (self.vertices[:, 1] < bbox[1][1]) &
-                            (self.vertices[:, 2] < bbox[1][2])).flatten()
-        return vinds
+    def filter_face_colors(self, color, threshold=0):
+        m = NMesh(self.copy())
+        condition = np.linalg.norm(m.visual.face_colors - color, axis=1) < threshold
+        finds = np.argwhere(condition).flatten()
+        vinds = np.unique(m.faces[finds])
+        m.vertices_subset(vinds)
+        return m
 
-    def crop_region(self, bbox):
-        vinds = self.find_vertex_in_box(bbox)
-        return self.vertex_subset(vinds)
-
-    def vertex_subset(self, vinds):
-        finds = np.unique(np.argwhere(
-            np.in1d(self.faces.reshape(-1, ), vinds)).flatten()//3)
-        try:
-            assert len(finds) > 1
-            return NMesh(mesh=self.submesh([finds])[0])
-        except AssertionError:
-            return NMesh(trimesh.Trimesh(vertices=[], faces=[]))
-
-    def remove_component(self, m):
-        cmpts = self.components()
-        area = sum(m.facets_area)
-        areas = [sum(c.facets_area) for c in cmpts]
-        _cmpts = [c for c, _area in zip(cmpts, areas) if not _area == area]
-        return NMesh(list=_cmpts)
-
-    def split_from_distance(self, D, eps=0.5):
-        vinds = np.argwhere((np.min(D, axis=1) <= eps)).flatten()
-        m0 = self.vertex_subset(vinds)
-        vinds = np.argwhere((np.min(D, axis=1) > eps)).flatten()
-        m1 = self.vertex_subset(vinds)
-        return m0, m1
+    def random_shots(self, niters=4):
+        imgs = []
+        for _ in range(niters):
+            self.rotate(axis_rotation=random.randint(0, 3), theta=pi * random.random())
+            imgs.append(self.shot())
+        imgs = np.array(imgs)
+        return Image.fromarray(imgs.reshape(400 * niters, 400, 3).swapaxes(0, 1))

@@ -1,0 +1,18 @@
+name: NMesh Docker Image
+
+on:
+  push:
+    branches: ["dev", "master"]
+
+  pull_request:
+    branches: ["dev", "master"]
+
+jobs:
+  sandbox:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build the Docker vanilla image
+      run: make build_docker_vanilla
+    - name: Build the Docker sandbox image
+      run: make build_docker_sandbox
