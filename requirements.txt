@@ -8,5 +8,5 @@ matplotlib
 pandas
 networkx
 pyglet
-PyMeshLab
+pmeshlab
 black

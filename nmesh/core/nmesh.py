@@ -418,9 +418,9 @@ class NMesh(trimesh.Trimesh):
         except BaseException as E:
             print("unable to save image", str(E))
 
-    def to_PyMeshLab(self):
-        from pymeshlab.pmeshlab import Mesh as _Mesh
-        from PyMeshLab import Mesh
+    def to_pmeshlab(self):
+        from pymeshlab import Mesh as _Mesh
+        from pmeshlab import Mesh
 
         return Mesh(
             input=_Mesh(
@@ -434,7 +434,7 @@ class NMesh(trimesh.Trimesh):
         )
 
     def discrete_curvatures(self):
-        return self.to_PyMeshLab().discrete_curvatures()[0].to_NMesh()
+        return self.to_pmeshlab().discrete_curvatures()[0].to_NMesh()
 
     def filter_face_colors(self, color, threshold=0):
         m = NMesh(self.copy())
