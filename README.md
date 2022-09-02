@@ -30,6 +30,7 @@ make install_wheels
 ### Docker
 To build the image with docker-compose
 ```
-make build_docker
+make build_dockers
+make docker_run_sandbox_gpu
 ```
 
