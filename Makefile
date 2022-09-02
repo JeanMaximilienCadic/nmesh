@@ -1,12 +1,27 @@
 # PHONY are targets with no files to check, all in our case
-.PHONY: build bash example_target check-env need_a_config jupyter tensorboard generate_requirement_file rm prune
 .DEFAULT_GOAL := help
 
-# Call with "make something conf_file=file.env" to overwrite
-conf_file ?= .env
--include $(conf_file)
+PACKAGE_NAME=nmesh
+IMAGE_SANDBOX=cadic/$(PACKAGE_NAME):sandbox
+IMAGE_VANILLA=cadic/$(PACKAGE_NAME):vanilla
+SRV=/srv
+FILESTORE=/FileStore
 
-VERSION=$(shell python -c 'from $(CONTAINER) import __version__;print(__version__)')
+# Makefile for launching common tasks
+DOCKER_OPTS ?= \
+    -e DISPLAY=${DISPLAY} \
+	-v /dev/shm:/dev/shm \
+	-v $(HOME)/.ssh:/home/foo/.ssh \
+	-v $(HOME)/.config:/home/foo/.config \
+	-v $(PWD):/workspace \
+	-v $(SRV):/srv \
+	-v $(FILESTORE):/FileStore \
+	-v /tmp/.X11-unix:/tmp/.X11-unix \
+	-v /var/run/docker.sock:/var/run/docker.sock \
+	--network=host \
+	--privileged
+
+VERSION=$(shell python -c 'from $(PACKAGE_NAME) import __version__;print(__version__)')
 
 # Ensure that we have a configuration file
 $(conf_file):
@@ -35,23 +50,26 @@ build_docker_sandbox:
 # BUILD WHEEL
 build_wheels: build_wheel
 
-build_wheel: clean
+install_requirements:
+	@pip install -r requirements.txt
+
+build_wheel: clean install_requirements
 	# Build the wheels
-	@mv dist/$(CONTAINER)*.whl dist/legacy/ || true; \
+	@mv dist/$(PACKAGE_NAME)*.whl dist/legacy/ || true; \
 		python setup.py bdist_wheel && rm -r build *.egg-info; \
 
 # PUSH
 push_dockers: push_docker_vanilla push_docker_sandbox
 
 push_docker_sandbox:
-	@docker tag $(IMAGE_SANDBOX) $(IMAGE_SANDBOX)-$(CONTAINER)_$(VERSION)
+	@docker tag $(IMAGE_SANDBOX) $(IMAGE_SANDBOX)-$(PACKAGE_NAME)_$(VERSION)
 	docker push $(IMAGE_SANDBOX)
-	docker push $(IMAGE_SANDBOX)-$(CONTAINER)_$(VERSION)
+	docker push $(IMAGE_SANDBOX)-$(PACKAGE_NAME)_$(VERSION)
 
 push_docker_vanilla:
-	@docker tag $(IMAGE_VANILLA) $(IMAGE_VANILLA)-$(CONTAINER)_$(VERSION)
+	@docker tag $(IMAGE_VANILLA) $(IMAGE_VANILLA)-$(PACKAGE_NAME)_$(VERSION)
 	docker push $(IMAGE_VANILLA)
-	docker push $(IMAGE_VANILLA)-$(CONTAINER)_$(VERSION)
+	docker push $(IMAGE_VANILLA)-$(PACKAGE_NAME)_$(VERSION)
 
 # PULL
 pull_dockers: pull_docker_vanilla pull_docker_sandbox
@@ -64,32 +82,21 @@ pull_docker_sandbox:
 
 # DOCKER RUNs
 docker_run_sandbox_cpu:
-	@docker stop dev_$(CONTAINER)_sandbox || true
-	@docker rm dev_$(CONTAINER)_sandbox || true
-	@docker run --restart always --name dev_$(CONTAINER)_sandbox --memory="16g" --memory-swap="32g" --shm-size 16G \
-			-v /var/run/docker.sock:/var/run/docker.sock \
-			-v $(HOME)/.config:/home/foo/.config \
-			-v $(PWD):/workspace \
-			-v $(SRV):/srv \
-			-v $(FILESTORE):/FileStore \
-			-dt $(IMAGE_SANDBOX)
-	docker exec -it dev_$(CONTAINER)_sandbox bash
+	@docker stop dev_$(PACKAGE_NAME)_sandbox || true
+	@docker rm dev_$(PACKAGE_NAME)_sandbox || true
+	docker run --name dev_$(PACKAGE_NAME)_sandbox ${DOCKER_OPTS} -dt $(IMAGE_SANDBOX)
+	docker exec -it dev_$(PACKAGE_NAME)_sandbox bash
 
 docker_run_sandbox_gpu:
-	@docker stop dev_$(CONTAINER)_sandbox || true
-	@docker rm dev_$(CONTAINER)_sandbox || true
-	@docker run --restart always --name dev_$(CONTAINER)_sandbox --gpus all --memory="16g" --memory-swap="32g" --shm-size 16G \
-			-v /var/run/docker.sock:/var/run/docker.sock \
-			-v $(HOME)/.config:/home/foo/.config \
-			-v $(PWD):/workspace \
-			-v $(SRV):/srv \
-			-v $(FILESTORE):/FileStore \
-			-dt $(IMAGE_SANDBOX)
-	docker exec -it dev_$(CONTAINER)_sandbox bash
+	@docker stop dev_$(PACKAGE_NAME)_sandbox || true
+	@docker rm dev_$(PACKAGE_NAME)_sandbox || true
+	@docker run --name dev_$(PACKAGE_NAME)_sandbox ${DOCKER_OPTS} --gpus all -dt $(IMAGE_SANDBOX)
+	docker exec -it dev_$(PACKAGE_NAME)_sandbox bash
 
 # COMMON
 clean:
-	@rm -rf $(find . -type d -iname *__pycache__*)
+	@find . -name "*.pyc" | xargs rm -f && \
+		find . -name "__pycache__" | xargs rm -rf
 
 checkout:
 	# Update git
