@@ -17,4 +17,4 @@ jobs:
     - name: Build the Docker sandbox image
       run: make build_docker_sandbox
     - name: Upload the package
-      run: pip install twine && tine upload dist/nmesh*.whl --skip-existing -u jcadic -p {{ secrets.PYPI }} 
+      run: pip install twine && twine upload dist/nmesh*.whl --skip-existing -u jcadic -p {{ secrets.PYPI }} 
