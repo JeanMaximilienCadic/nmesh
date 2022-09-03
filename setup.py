@@ -10,6 +10,8 @@ setup(
         "nmesh.cp"
     ],
     url='https://github.com/JeanMaximilienCadic/nmesh',
+    include_package_data=True,
+    package_data={"": ["*.yml"]},
     license='MIT',
     author='Jean Maximilien Cadic',
     python_requires='>=3.6',
