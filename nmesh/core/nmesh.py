@@ -464,4 +464,10 @@ class NMesh(trimesh.Trimesh):
         fps = [fingerprint(c) for c in cmpts]
         return NMesh(list=[c for c, _fp in zip(cmpts, fps) if not _fp == fp])
 
-    
+    def split_from_distance(self, m, eps=0.3):
+        D = euclidean_distances(self.vertices, m.vertices)
+        vinds = np.argwhere(np.min(D, axis=1) >= eps).flatten()
+        outer = self.vertices_subset(vinds)
+        vinds = np.argwhere(np.min(D, axis=1) < eps).flatten()
+        inner = self.vertices_subset(vinds)
+        return inner, outer
