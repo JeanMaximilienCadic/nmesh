@@ -2,5 +2,5 @@
 notebooks
 dist/legacy
 .idea
-__pycache__
+*__pycache__*
 config.yml

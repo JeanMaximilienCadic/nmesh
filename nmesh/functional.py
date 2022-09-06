@@ -5,7 +5,7 @@ import os
 def load_config():
     # Priority is on global variable
     try:
-        filename = os.environ["AI3DDST_CONFIG"]
+        filename = os.environ["NMESH_CONFIG"]
         cfg = _load_config(filename)
     # Then default path
     except:

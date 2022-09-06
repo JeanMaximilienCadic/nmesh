@@ -3,7 +3,6 @@ from nmesh import __version__
 setup(
     name='nmesh',
     version=__version__,
-    long_description="",
     packages=[
         "nmesh",
         "nmesh.core",
@@ -12,6 +11,8 @@ setup(
     url='https://github.com/JeanMaximilienCadic/nmesh',
     include_package_data=True,
     package_data={"": ["*.yml"]},
+    long_description="".join(open("README.md", "r").readlines()),
+    long_description_content_type='text/markdown',
     license='MIT',
     author='Jean Maximilien Cadic',
     python_requires='>=3.6',
