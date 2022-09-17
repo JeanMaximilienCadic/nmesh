@@ -805,6 +805,6 @@ def meshlab(script_name, filename, ext_out="ply"):
         script)
     os.system(command)
     print(">> meshlab : {}".format(command))
-    mesh = NMesh(filename=file_out)
+    mesh = NMesh(file_out)
     os.system("rm {}".format(file_out))
     return mesh

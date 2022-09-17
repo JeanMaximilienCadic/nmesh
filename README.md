@@ -1,11 +1,10 @@
 <h1 align="center">
   <br>
-  <a href=https://drive.google.com/uc?id=1lp-TSsLdTPBppssMm_f0YORERVSbDf9J"><img src="https://drive.google.com/uc?id=1lp-TSsLdTPBppssMm_f0YORERVSbDf9J"></a>
-  <br>
   NMesh
+  <img src="https://drive.google.com/uc?id=1adCikDmjjDULmn-3R7_wpyyJX-nzKlHb">
+  <br>
   <br>
 </h1>
-
 
 <p align="center">
   <a href="#modules">Modules</a> •
