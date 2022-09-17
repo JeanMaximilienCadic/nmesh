@@ -6,7 +6,8 @@ setup(
     packages=[
         "nmesh",
         "nmesh.core",
-        "nmesh.cp"
+        "nmesh.pc",
+        "nmesh.tests"
     ],
     url='https://github.com/JeanMaximilienCadic/nmesh',
     include_package_data=True,
@@ -24,4 +25,3 @@ setup(
         "License :: OSI Approved :: MIT License",
     ]
 )
-

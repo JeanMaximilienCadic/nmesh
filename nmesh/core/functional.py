@@ -122,10 +122,9 @@ def crop_bounding_box(vertices, r):
     :param r: region of reference to crop the mesh
     :return:
     """
-
-    inds_vertices = np.argwhere(
-        (np.min(vertices - r[0], axis=1) >= 0) & (np.max(vertices - r[1], axis=1) <= 0)).reshape(-1, )
-    return vertices[inds_vertices]
+    vinds = np.argwhere((np.min(vertices > r[0], axis=1).flatten()) & (
+        np.min(vertices < r[1], axis=1).flatten())).flatten()
+    return vertices[vinds]
 
 
 def crop(vertices, axis=z, borne_inf=0, borne_sup=1, t_min=None, t_max=None, return_inds=False):
