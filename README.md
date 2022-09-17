@@ -9,12 +9,12 @@
 
 <p align="center">
   <a href="#modules">Modules</a> •
-  <a href="#code-design">Code Design</a> •
-  <a href="#code-structure">Code Structure</a> •
-  <a href="#how-to-use">How To Use</a> •
-  <a href="#docker">Docker</a> •
-  <a href="#pythonenv">PythonEnv</a> •
-  <a href="#resssource">Ressources</a> •
+  <a href="#code-structure">Code structure</a> •
+  <a href="#installing-the-application">Installing the application</a> •
+  <a href="#makefile-commands">Makefile commands</a> •
+  <a href="#environments">Environments</a> •
+  <a href="#running-the-application">Running the application</a>
+  <a href="#ressources">Ressources</a>
 </p>
 
 
@@ -25,7 +25,7 @@ NMesh is a Python package that provides two high-level features:
 You can reuse your favorite Python packages such as NumPy, SciPy and Cython to extend ZakuroCache integration.
 
 
-## Modules
+# Modules
 
 At a granular level, NMesh is a library that consists of the following components:
 
@@ -33,38 +33,8 @@ At a granular level, NMesh is a library that consists of the following component
 | ---- | --- |
 | **nmesh** | Contains the implementation of NMesh |
 | **nmesh.core** | Contain the functions executed by the library. |
-| **nmesh.cp** | Processor for the point cloud|
-
-
-## Code design
-* We recommend using Docker for dev and production. Therefore we encourage its usage all other the repo.
-* We have `vanilla` and `sandbox` environment. 
-  * `Vanilla` refers to a prebuilt docker image that already contains system dependencies.
-  * `Sandbox` referes a predbuilt docker image that contains the code of this repo.
-* Semantic versioning https://semver.org/ . We commit fix to `a.b.x`, features to `a.x.c` and stable release (master) to `x.b.c`. 
-* PR are done to `dev` and reviewed for additional features. This should only be reviewed by the engineers in the team.
-* PR are done to `master` for official (internal) release of the codes. This should be reviewed by the maximum number of engineers.   
-* The ETL jobs are scatter accross sequential refinement of the data `landing/bronze/silver/gold` 
-* Modules and scripts: Any piece of code that can of use for parent module modules should be moved at a higher level. 
-  * eg: `functional.py` contains common funtions for `etl.bronze` and `etl.silver`
-```
-...
-├── etl
-│   ├── bronze
-│   │   ├── __init__.py
-│   │   └── __main__.py
-│   ├── functional.py
-│   ├── __init__.py
-│   └── landing
-│       ├── __init__.py
-│       └── __main__.py
-├── functional.py
-├── __init__.py
-...
-```
-* Modules should ideally contain a `__main__.py` that demo an exeution of the module
-  * `etl/bronze/__main__.py` describes an etl job for the creation of the bronze parition
-  * `trainer/__main__.py` describes the training pipeline
+| **nmesh.pc** | Processor for the point cloud|
+| **nmesh.tests** | Unit tests |
 
 
 
@@ -78,7 +48,8 @@ setup(
     packages=[
         "nmesh",
         "nmesh.core",
-        "nmesh.cp"
+        "nmesh.pc",
+        "nmesh.tests"
     ],
     url='https://github.com/JeanMaximilienCadic/nmesh',
     include_package_data=True,
@@ -96,11 +67,17 @@ setup(
         "License :: OSI Approved :: MIT License",
     ]
 )
+
 ```
 
-## How to use
-To clone and run this application, you'll need [Git](https://git-scm.com) and [ https://docs.docker.com/docker-for-mac/install/]( https://docs.docker.com/docker-for-mac/install/) and Python installed on your computer. 
-From your command line:
+# Installing the application
+To clone and run this application, you'll need the following installed on your computer:
+- [Git](https://git-scm.com)
+- Docker Desktop
+   - [Install Docker Desktop on Mac](https://docs.docker.com/docker-for-mac/install/)
+   - [Install Docker Desktop on Windows](https://docs.docker.com/desktop/install/windows-install/)
+   - [Install Docker Desktop on Linux](https://docs.docker.com/desktop/install/linux-install/)
+- [Python](https://www.python.org/downloads/)
 
 Install the package:
 ```bash
@@ -111,7 +88,7 @@ git clone https://github.com/JeanMaximilienCadic/nmesh
 cd nmesh
 ```
 
-## Makefile
+# Makefile commands
 Exhaustive list of make commands:
 ```
 install_wheels
@@ -124,25 +101,37 @@ push_container_vanilla
 pull_container_vanilla
 pull_container_sandbox
 build_vanilla
-clean
 build_wheels
 auto_branch 
 ```
+# Environments
+
 ## Docker
-(\* recommended)
+
+> **Note**
+> 
+> Running this application by using Docker is recommended.
 
 To build and run the docker image
 ```
 make build
-make docker_run_sandbox_cpu
+make sandbox
 ```
 
 ## PythonEnv
-(\* not recommended)
+
+> **Warning**
+> 
+> Running this application by using PythonEnv is possible but *not* recommended.
 ```
 make install_wheels
 ```
-
+# Running the application
+```
+from nmesh import NMesh, cfg
+m = NMesh(cfg.drive.bull)
+m.show()
+```
 
 ## Ressources
 * Vanilla:  https://en.wikipedia.org/wiki/Vanilla_software

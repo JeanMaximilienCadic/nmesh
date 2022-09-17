@@ -1,5 +1,5 @@
 # PHONY are targets with no files to check, all in our case
-.DEFAULT_GOAL := help
+.DEFAULT_GOAL := build
 
 PACKAGE_NAME=nmesh
 IMAGE_SANDBOX=cadic/$(PACKAGE_NAME):sandbox
@@ -53,7 +53,7 @@ build_wheels: build_wheel
 install_requirements:
 	@pip install -r requirements.txt
 
-build_wheel: clean install_requirements
+build_wheel: install_requirements
 	# Build the wheels
 	@mv dist/$(PACKAGE_NAME)*.whl dist/legacy/ || true; \
 		python setup.py bdist_wheel && rm -r build *.egg-info; \
@@ -81,23 +81,13 @@ pull_docker_sandbox:
 	docker pull $(IMAGE_SANDBOX)
 
 # DOCKER RUNs
-docker_run_sandbox_cpu:
+sandbox:
 	@docker stop dev_$(PACKAGE_NAME)_sandbox || true
 	@docker rm dev_$(PACKAGE_NAME)_sandbox || true
 	docker run --name dev_$(PACKAGE_NAME)_sandbox ${DOCKER_OPTS} -dt $(IMAGE_SANDBOX)
 	docker exec -it dev_$(PACKAGE_NAME)_sandbox bash
 
-docker_run_sandbox_gpu:
-	@docker stop dev_$(PACKAGE_NAME)_sandbox || true
-	@docker rm dev_$(PACKAGE_NAME)_sandbox || true
-	@docker run --name dev_$(PACKAGE_NAME)_sandbox ${DOCKER_OPTS} --gpus all -dt $(IMAGE_SANDBOX)
-	docker exec -it dev_$(PACKAGE_NAME)_sandbox bash
-
 # COMMON
-clean:
-	@find . -name "*.pyc" | xargs rm -f && \
-		find . -name "__pycache__" | xargs rm -rf
-
 checkout:
 	# Update git
 	@git checkout -b $(VERSION)_auto || true; \

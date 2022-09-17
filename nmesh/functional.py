@@ -1,5 +1,6 @@
 from gnutools.fs import load_config as _load_config, parent
 import os
+from gnutools.utils import RecNamespace
 
 
 def load_config():
