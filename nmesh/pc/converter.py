@@ -12,7 +12,7 @@ class Converter:
         hcs = crop_size//2
         crop_array = np.array([hcs, hcs, hcs])
         for id in ["x", "y"]:
-            m = NMesh(filename=f"{folder}/{id}.ply")
+            m = NMesh(f"{folder}/{id}.ply")
             m.crop_bounding_box([-crop_array, crop_array])
             vertices = m.vertices
             vertices += crop_array

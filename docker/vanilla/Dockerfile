@@ -1,7 +1,10 @@
-FROM python:3.9.13-buster
+FROM python:3.6-slim
 
 # Add system deps
-RUN apt update &&\
+RUN apt update && \
         apt install \
         libgl1-mesa-glx \
-        meshlab -y
+        meshlab \
+        wget \
+        unzip \
+        -y

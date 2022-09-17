@@ -2,7 +2,7 @@ from math import acos, pi
 import trimesh
 from gnutools.utils import id_generator
 from scipy.spatial.distance import cdist as euclidean_distances
-# from .functional import *
+from .functional import *
 import numpy as np
 from PIL import Image
 import random
@@ -72,11 +72,11 @@ class NMesh(trimesh.Trimesh):
         :return:
         """
         meshes = (
-            [NMesh(mesh=m)
+            [NMesh(m)
              for m in self.split(only_watertight=only_watertight)]
             if r is None
             else [
-                NMesh(mesh=m)
+                NMesh(m)
                 for m in self.split(only_watertight=only_watertight)
                 if len(m.vertices) in r
             ]
@@ -190,7 +190,6 @@ class NMesh(trimesh.Trimesh):
         # Bounding box and compression
         vertices = np.unique(np.array(self.vertices * 10, dtype=int), axis=0)
         r = ranges(vertices)
-        l = length(vertices)
         r_extend = np.ceil(
             np.array([[-max(r[1])] * 3, [max(r[1])] * 3]) * 1.28)
         for i, _ in enumerate(np.array(neighbors)[:, 0]):
