@@ -8,7 +8,7 @@ from PIL import Image
 import random
 import logging
 import os
-from gnutools.remote import download_and_unzip
+from gnutools.remote import gdrivezip
 
 
 class NMesh(trimesh.Trimesh):
@@ -24,7 +24,7 @@ class NMesh(trimesh.Trimesh):
             kwargs.update({"list": input})
         elif type(input) == str:
             if input.startswith("gdrive://"):
-                input = download_and_unzip(input)[0]
+                input = gdrivezip(input)[0]
             kwargs.update({"filename": input})
         else:
             kwargs.update({"mesh": input})
