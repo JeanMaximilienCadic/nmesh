@@ -1,14 +1,16 @@
-from math import acos, pi
-import trimesh
-from gnutools.utils import id_generator
-from scipy.spatial.distance import cdist as euclidean_distances
-from .functional import *
-import numpy as np
-from PIL import Image
-import random
 import logging
 import os
+import random
+from math import pi
+
+import numpy as np
+import trimesh
 from gnutools.remote import gdrivezip
+from gnutools.utils import id_generator
+from PIL import Image
+from scipy.spatial.distance import cdist as euclidean_distances
+
+from .functional import *
 
 
 class NMesh(trimesh.Trimesh):
@@ -437,8 +439,8 @@ class NMesh(trimesh.Trimesh):
             return None
 
     def to_pmeshlab(self):
-        from pymeshlab import Mesh as _Mesh
         from pmeshlab import Mesh
+        from pymeshlab import Mesh as _Mesh
 
         return Mesh(
             input=_Mesh(
@@ -489,20 +491,11 @@ class NMesh(trimesh.Trimesh):
         fps = [fingerprint(c) for c in cmpts]
         return NMesh([c for c, _fp in zip(cmpts, fps) if not _fp == fp])
 
-    def split_from_distance(self, m, eps=0.3):
+    def split_from_distance(self, m, eps=0.3, strict=False):
         D = euclidean_distances(self.vertices, m.vertices)
         vinds = np.argwhere(np.min(D, axis=1) >= eps).flatten()
         outer = self.vertices_subset(vinds)
         vinds = np.argwhere(np.min(D, axis=1) < eps).flatten()
-        inner = self.vertices_subset(vinds)
+        inner = self.vertices_subset(vinds, strict=strict)
         return inner, outer
 
-
-if __name__ == "__main__":
-    from nmesh import NMesh
-    f = "/FileStore/AI3D/bronze/ply/ai3d_all_segmented/xv_13818_xf_26917_yv_9091_yf_26917/x.ply"
-    m = NMesh("gdrive://")
-    m.ranges()
-    bbox = [[-5, -5, -5], [5, 5, 5]]
-    m.crop_bounding_box(bbox).ranges()
-    m.ranges()

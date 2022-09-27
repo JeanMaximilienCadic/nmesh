@@ -7,4 +7,5 @@ RUN apt update && \
         meshlab \
         wget \
         unzip \
+        make \
         -y
