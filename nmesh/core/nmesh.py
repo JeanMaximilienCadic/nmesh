@@ -133,7 +133,7 @@ class NMesh(trimesh.Trimesh):
             Trimesh(
                 vertices=vertices,
                 faces=faces,
-                face_colors=face_colors,
+                face_colors=face_colors.reshape(-1, 4),
                 vertex_colors=vertex_colors,
             )
         )
@@ -454,7 +454,7 @@ class NMesh(trimesh.Trimesh):
         )
 
     def discrete_curvatures(self):
-        return self.to_pmeshlab().discrete_curvatures()[0].to_NMesh()
+        return self.to_pmeshlab().discrete_curvatures()[0].to_nmesh()
 
     def filter_face_colors(self, color, threshold=0):
         m = NMesh(self.copy())
@@ -482,13 +482,13 @@ class NMesh(trimesh.Trimesh):
         ind = np.argmin(d)
         return NMesh(cmpts[ind])
 
+    def fingerprint(self):
+        return f"{len(self.vertices)}_{len(self.faces)}"
+    
     def remove_component(self, m0):
-        def fingerprint(m):
-            return f"{len(m.vertices)}_{len(m.faces)}"
-
-        fp = fingerprint(m0)
+        fp = m0.fingerprint()
         cmpts = self.components()
-        fps = [fingerprint(c) for c in cmpts]
+        fps = [c.fingerprint() for c in cmpts]
         return NMesh([c for c, _fp in zip(cmpts, fps) if not _fp == fp])
 
     def split_from_distance(self, m, eps=0.3, strict=False):
@@ -499,3 +499,17 @@ class NMesh(trimesh.Trimesh):
         inner = self.vertices_subset(vinds, strict=strict)
         return inner, outer
 
+    def group_by_color_unique(self):
+        colors = np.unique(self.visual.face_colors, axis=0)
+        meshes = dict()
+        for color in colors:
+            inds = np.argwhere(np.min(self.visual.face_colors == color, axis=1))
+            meshes[str(color)] = self.vertex_subset(np.unique(self.faces[inds]))
+        return meshes     
+    
+    def drop_duplicates(self):
+        # Drop duplicates
+        meshes = {}
+        for m in self.components():
+            meshes[m.fingerprint()] = m
+        return NMesh(list(meshes.values()))
