@@ -7,6 +7,7 @@ numpy
 matplotlib
 pandas
 networkx
-pyglet
+pyglet==1.5.27
 pmeshlab
 black
+miniofs
