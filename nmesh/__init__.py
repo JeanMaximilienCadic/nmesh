@@ -1,4 +1,4 @@
-__version__ = "0.1.3a5"
+__version__ = "0.1.4"
 
 from nmesh.core import *
 from nmesh.functional import *

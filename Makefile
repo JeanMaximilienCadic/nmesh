@@ -48,9 +48,11 @@ build_wheels: build_wheel
 
 build_wheel:
 	# Build the wheels
-	@mv dist/$(PACKAGE)*.whl dist/legacy/ || true; \
-		python setup.py bdist_wheel && rm -r build *.egg-info; 
+	@mv dist/*.whl dist/legacy/ || true
+	@pip wheel . -w ./dist
+	@mv dist/nmesh*.whl ./ && rm dist/*.whl && mv nmesh*.whl dist/
 	@clean || true
+
 # PUSH
 push_dockers: push_docker_vanilla push_docker_sandbox
 

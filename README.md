@@ -8,7 +8,6 @@
 
 <p align="center">
   <a href="#modules">Modules</a> •
-  <a href="#code-structure">Code structure</a> •
   <a href="#installing-the-application">Installing the application</a> •
   <a href="#makefile-commands">Makefile commands</a> •
   <a href="#environments">Environments</a> •
@@ -34,40 +33,6 @@ At a granular level, NMesh is a library that consists of the following component
 | **nmesh.core** | Contain the functions executed by the library. |
 | **nmesh.pc** | Processor for the point cloud|
 | **nmesh.tests** | Unit tests |
-
-
-
-# Code structure
-```python
-from setuptools import setup
-from nmesh import __version__
-setup(
-    name='nmesh',
-    version=__version__,
-    packages=[
-        "nmesh",
-        "nmesh.core",
-        "nmesh.pc",
-        "nmesh.tests"
-    ],
-    url='https://github.com/JeanMaximilienCadic/nmesh',
-    include_package_data=True,
-    package_data={"": ["*.yml"]},
-    long_description="".join(open("README.md", "r").readlines()),
-    long_description_content_type='text/markdown',
-    license='MIT',
-    author='Jean Maximilien Cadic',
-    python_requires='>=3.6',
-    install_requires=[r.rsplit()[0] for r in open("requirements.txt")],
-    author_email='support@cadic.jp',
-    description='GNU Tools for python',
-    classifiers=[
-        "Programming Language :: Python :: 3.6",
-        "License :: OSI Approved :: MIT License",
-    ]
-)
-
-```
 
 # Installing the application
 To clone and run this application, you'll need the following installed on your computer:

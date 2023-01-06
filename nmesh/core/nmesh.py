@@ -9,7 +9,7 @@ from gnutools.remote import gdrive
 from gnutools.utils import id_generator
 from PIL import Image
 from scipy.spatial.distance import cdist as euclidean_distances
-
+import pandas as pd
 from .functional import *
 
 spark = None
@@ -547,3 +547,46 @@ class NMesh(trimesh.Trimesh):
         for m in self.components():
             meshes[m.fingerprint()] = m
         return NMesh(list(meshes.values()))
+
+    def project_vertices(self, vert_dst):
+        vert_src = self.vertices
+        D = euclidean_distances(vert_src, vert_dst)
+        inds = np.argmin(D, axis=1)
+        vert_src = vert_dst[inds]
+        self.vertices = vert_src
+        return self
+
+    def components_by_color(self):
+        cmpts = dict()
+        for c in np.unique(self.visual.vertex_colors, axis=0):
+            inds = np.min(self.visual.vertex_colors == c, axis=1)
+            vids_inner = np.argwhere(inds).flatten()
+            cmpts[str(c)] = self.vertices_subset(vids_inner, strict=False).components()
+        return cmpts
+
+    def components_ordered_by_vertices(self, min_vertices=0):
+        cmpts = self.components(min_vertices=min_vertices)
+        inds = np.argsort([len(c.vertices) for c in cmpts])
+        return np.array(cmpts)[inds]
+
+    def find_vertices_inds_from_proxy(self, vertices):
+        df = pd.DataFrame.from_records(self.vertices, columns=list("xyz")).reset_index()
+        df_sub = pd.DataFrame.from_records(vertices, columns=list("xyz"))
+        inds = df.merge(df_sub, on=list("xyz"))["index"]._values
+        return inds
+
+    def remove_vertices(self, vertices):
+        inds = set(range(len(self.vertices)))
+        _inds = self.find_vertices_inds_from_proxy(vertices)
+        return self.vertices_subset(list(inds.difference(set(_inds))), strict=False)
+
+    def apply_taubin_smoothing(self, stepsmoothnum=10):
+        vcolors = self.visual.vertex_colors
+        # Smooth
+        m = self.to_pmeshlab()
+        m._model.apply_coord_taubin_smoothing(stepsmoothnum=stepsmoothnum)
+        m = m.to_nmesh()
+        # Apply modification
+        self.vertices = m.vertices
+        self.visual.vertex_colors = vcolors
+        return self
