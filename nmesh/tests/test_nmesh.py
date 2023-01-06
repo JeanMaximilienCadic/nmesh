@@ -1,6 +1,8 @@
 import unittest
-from nmesh import NMesh, cfg
+
 import numpy as np
+
+from nmesh import NMesh, cfg
 
 
 class TestNMeshMethods(unittest.TestCase):
